@@ -1509,9 +1509,11 @@ function doExport(mode){
 
   if(graphToken){
     toast(nm[mode]+'中… OneDriveに保存しています','');
-    saveToOneDrive().then(ok=>{
+    saveToOneDrive().then(async ok=>{
       if(ok){
         toast(nm[mode]+'完了！OneDriveに保存しました ✅','ok');
+        // 保存完了後にwbを最新状態に再読み込み（列ずれ防止）
+        await loadFromOneDrive();
       }
     });
   } else {
