@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA 振込明細計算</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "ＭＳ Ｐゴシック", "MS PGothic", "Meiryo", sans-serif;
+  font-size: 11pt;
+  background: #e8e8e8;
+}
+
+/* ── ツールバー ── */
+#toolbar {
+  background: #4472C4;
+  color: #fff;
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+#toolbar h1 { font-size: 12pt; font-weight: bold; flex: 1; min-width: 180px; }
+.tbtn {
+  background: #fff; color: #4472C4;
+  border: none; border-radius: 3px;
+  padding: 5px 12px; font-size: 10pt;
+  font-family: inherit; font-weight: bold;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.tbtn:hover { background: #dde9f7; }
+.tbtn.green  { background: #70AD47; color: #fff; }
+.tbtn.green:hover  { background: #548235; }
+.tbtn.orange { background: #ED7D31; color: #fff; }
+.tbtn.orange:hover { background: #c55a11; }
+.tbtn.red    { background: #C00000; color: #fff; }
+.tbtn.red:hover    { background: #9c0000; }
+.tbtn.gray   { background: #f2f2f2; color: #333; }
+.tbtn.gray:hover   { background: #ddd; }
+.tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+#fileLabel { font-size: 9pt; opacity: 0.85; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── シートラッパー ── */
+#wrap {
+  margin: 10px auto 30px;
+  max-width: 920px;
+  background: #fff;
+  border: 1px solid #aaa;
+  box-shadow: 0 2px 10px rgba(0,0,0,.15);
+}
+#sheetTab {
+  background: #f2f2f2;
+  border-bottom: 1px solid #ccc;
+  padding: 5px 10px;
+  font-size: 9.5pt;
+  color: #555;
+}
+#sheetTab b { color: #4472C4; }
+
+/* ── テーブル ── */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+col.cA { width: 130px; }
+col.cB { width: 72px; }
+col.cC { width: 26px; }
+col.cSP { width: 24px; }
+col.cI { width: 120px; }
+col.cJ { width: 68px; }
+col.cK { width: 26px; }
+
+td {
+  border: 1px solid #d0d0d0;
+  padding: 1px 4px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 10.5pt;
+  height: 21px;
+}
+td.nb  { border: none; }
+td.nb-lr { border-left: none; border-right: none; }
+
+/* テキストスタイル */
+td.bold   { font-weight: bold; }
+td.right  { text-align: right; padding-right: 5px; }
+td.center { text-align: center; }
+td.orange { color: #FF6600; }
+td.dgreen { color: #339966; }
+td.blue   { color: #0066CC; font-weight: bold; }
+td.dblue  { color: #0000FF; font-weight: bold; }
+td.red    { color: #FF0000; }
+td.unit   { text-align: left; padding-left: 2px; color: #555; font-size: 10pt; }
+
+/* セクションヘッダ */
+td.sect {
+  font-weight: bold; text-align: center;
+  border: 2px solid #555;
+  background: #f2f2f2;
+}
+td.sect-blue {
+  font-weight: bold; text-align: center;
+  border: 2px solid #4472C4;
+  background: #dde9f7; color: #0066CC;
+}
+td.sect-green {
+  font-weight: bold; text-align: center;
+  border: 2px solid #339966;
+  background: #e8f4ec; color: #339966;
+  font-size: 9.5pt;
+}
+
+/* 罫線バリエーション */
+td.bt2 { border-top: 2px solid #555; }
+td.bb2 { border-bottom: 2px solid #555; }
+td.bb2d { border-bottom: 2.5px double #555; }
+td.bb1d { border-bottom: 1.5px solid #888; }
+
+/* ── セル入力欄 ── */
+/* 入力可能セル（薄緑） */
+.inp {
+  width: 100%; height: 19px;
+  border: none; outline: none;
+  background: #CCFFCC;
+  font-family: inherit; font-size: 10.5pt;
+  padding: 0 3px;
+  cursor: text;
+}
+.inp[type=number] { text-align: right; }
+.inp:focus {
+  background: #FFFFAA;
+  box-shadow: inset 0 0 0 2px #4472C4;
+}
+select.inp {
+  background: #CCFFCC;
+  cursor: pointer;
+  height: 20px;
+}
+
+/* 読み取り専用セル（触れない） */
+.ro {
+  width: 100%; height: 19px;
+  border: none; outline: none;
+  background: transparent;
+  font-family: inherit; font-size: 10.5pt;
+  padding: 0 3px;
+  cursor: default;
+  pointer-events: none;
+  text-align: right;
+}
+.ro.orange { color: #FF6600; font-weight: bold; }
+.ro.dgreen { color: #339966; font-weight: bold; }
+.ro.blue   { color: #0066CC; font-weight: bold; }
+.ro.dblue  { color: #0000FF; font-weight: bold; }
+.ro.red    { color: #FF0000; font-weight: bold; }
+.ro.black  { color: #333; font-weight: bold; }
+
+/* ドロップオーバーレイ */
+#dropOv {
+  display: none; position: fixed; inset: 0;
+  background: rgba(68,114,196,0.18);
+  border: 4px dashed #4472C4;
+  z-index: 200; align-items: center;
+  justify-content: center; font-size: 18pt;
+  color: #4472C4; font-weight: bold;
+}
+#dropOv.on { display: flex; }
+
+/* トースト */
+#toast {
+  position: fixed; bottom: 18px; right: 18px;
+  background: #404040; color: #fff;
+  padding: 9px 18px; border-radius: 4px;
+  font-size: 10pt; opacity: 0;
+  transition: opacity 0.3s; z-index: 300;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+#toast.on  { opacity: 1; }
+#toast.ok  { background: #70AD47; }
+#toast.err { background: #C00000; }
+
+#xlFile { display: none; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>🌸 ARIA 振込明細計算システム</h1>
+  <!-- ログイン状態表示 -->
+  <div id="loginStatus" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.15);border-radius:5px;padding:4px 10px;font-size:9pt;">
+    <span id="loginDot" style="width:10px;height:10px;border-radius:50%;background:#ff6b6b;flex-shrink:0;"></span>
+    <span id="loginStatusText">未接続</span>
+  </div>
+  <button class="tbtn" id="msBtn" onclick="handleMsLogin()" style="display:flex;align-items:center;gap:5px;">
+    <svg width="14" height="14" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+    <span id="msBtnText">Microsoftでログイン</span>
+  </button>
+  <!-- ログイン未接続時のみ表示 -->
+  <label class="tbtn" for="xlFile" style="cursor:pointer" id="xlFileLabel">📂 Excelを開く</label>
+  <input type="file" id="xlFile" accept=".xlsx,.xls">
+  <span id="fileLabel"></span>
+  <button class="tbtn green"  id="bClear"  onclick="doExport('clear')"  disabled>⚡ 売上集計に転記</button>
+  <button class="tbtn orange" id="bGenkin" onclick="doExport('genkin')" disabled>💴 現金集計に転記</button>
+  <button class="tbtn red"    id="bClear2" onclick="clearForm()" disabled>🗑 クリア</button>
+  <button class="tbtn gray"   onclick="showSettings()" title="設定">⚙️</button>
+</div>
+
+<!-- 設定パネル -->
+<div id="settingsPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:8px;padding:28px;width:520px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+    <h2 style="font-size:13pt;color:#4472C4;margin-bottom:18px;">⚙️ Microsoft Graph API 設定</h2>
+    <p style="font-size:9.5pt;color:#666;margin-bottom:16px;line-height:1.7;">
+      Azure Portal で取得した <b>Client ID</b> と、OneDrive上の <b>Excelファイルパス</b> を入力してください。<br>
+      設定はこのブラウザに保存されます。
+    </p>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:9.5pt;font-weight:bold;color:#333;display:block;margin-bottom:4px;">Azure Client ID</label>
+      <input type="text" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        style="width:100%;border:1.5px solid #ccc;border-radius:5px;padding:8px 10px;font-size:10pt;outline:none;">
+      <div style="font-size:8.5pt;color:#888;margin-top:3px;">Azure Portal → アプリの登録 → アプリケーション（クライアント）ID</div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:9.5pt;font-weight:bold;color:#333;display:block;margin-bottom:4px;">OneDrive上のExcelファイルパス</label>
+      <input type="text" id="cfgPath"
+        value="/まさみFolder/お花関係Folder/まさみ'ｓ 特別File/お花関係/ARIA/2026年_ARIA_売上_経費計算_修正版.xlsx"
+        style="width:100%;border:1.5px solid #ccc;border-radius:5px;padding:8px 10px;font-size:9.5pt;outline:none;">
+      <div style="font-size:8.5pt;color:#888;margin-top:3px;">OneDrive内のパス（G:\OneDrive - Cestino di Fiori\ 以降）</div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeSettings()" style="padding:8px 20px;border:1.5px solid #ccc;border-radius:5px;background:#f5f5f5;cursor:pointer;font-family:inherit;">キャンセル</button>
+      <button onclick="saveSettings()" style="padding:8px 20px;border:none;border-radius:5px;background:#4472C4;color:#fff;font-weight:bold;cursor:pointer;font-family:inherit;">💾 保存してログイン</button>
+    </div>
+  </div>
+</div>
+
+<div id="wrap">
+<div id="sheetTab">📄 シート: <b>振込明細計算</b> &nbsp;｜&nbsp; <span style="color:#888;font-size:9pt;">🟢 薄緑セル＝入力欄　白セル＝計算結果・固定値</span></div>
+
+<table>
+<colgroup>
+  <col class="cA"><col class="cB"><col class="cC">
+  <col class="cSP">
+  <col class="cI"><col class="cJ"><col class="cK">
+</colgroup>
+<tbody>
+
+<!-- タイトル行 -->
+<tr>
+  <td colspan="3" class="nb" style="font-size:13pt;font-weight:bold;padding:7px 6px;">＜＜振込み明細計算＞＞</td>
+  <td class="nb"></td>
+  <td colspan="3" class="nb" style="font-size:12pt;font-weight:bold;padding:7px 4px;">受講者用</td>
+</tr>
+
+<!-- 講座日 -->
+<tr>
+  <td class="right bold">講座日</td>
+  <td><input type="date" id="kDate" class="inp" oninput="calc()"></td>
+  <td class="unit" id="youbi" style="width:50px;text-align:center;color:#333;"></td>
+  <td class="nb"></td>
+  <td class="right" style="color:#888;font-size:9.5pt;">教室名：</td>
+  <td colspan="2"><select id="kyoshitsu" class="inp" onchange="calc()">
+    <option value="">選択</option>
+    <option>W葉山</option><option>W国際村</option><option>その他</option>
+  </select></td>
+</tr>
+<tr><td colspan="7" class="nb" style="height:5px;"></td></tr>
+
+<!-- セクションヘッダ -->
+<tr>
+  <td colspan="3" class="sect">入会者用</td>
+  <td class="nb"></td>
+  <td colspan="3" class="sect">受講者用</td>
+</tr>
+<tr><td colspan="7" class="nb" style="height:3px;"></td></tr>
+
+<!-- 行7: 入会花材費計 / 花材費合計 -->
+<tr>
+  <td class="orange">入会花材費計</td>
+  <td><input type="number" id="nyukaiHanaTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="center orange">花材費合計</td>
+  <td><input type="number" id="jukoHanaTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 行8: 生花支払い単価（左固定）/ 支払い単価（右固定） -->
+<tr>
+  <td class="right">生花支払い単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">2,700</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">2,700</td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 行9: 生花人数（入会・左入力）/ 人数（受講者・右入力） -->
+<tr>
+  <td class="right">生花 人数</td>
+  <td><input type="number" id="nyukaiHanaSeikaNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="jukoSeikaNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 行10: プリザーブド支払い単価（左固定）/ 以下資材費ヘッダ（右） -->
+<tr>
+  <td class="right">プリザーブド 支払い単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">2,900</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td colspan="3" style="font-weight:bold;text-align:center;border:2px solid #339966;background:#e8f4ec;color:#339966;font-size:9.5pt;">以下資材費</td>
+</tr>
+
+<!-- 行11: プリザーブド人数（入会・左入力）/ 空白右 -->
+<tr>
+  <td class="right">プリザーブド 人数</td>
+  <td><input type="number" id="nyukaiHanaPrizaNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 行12: 入会資材費計（左）/ 進級セット（右計算） -->
+<tr>
+  <td class="dgreen">入会資材費計</td>
+  <td><input type="number" id="nyukaiShizaiTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="center dgreen">進級セット</td>
+  <td><input type="number" id="shinkyuTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 行13: 生花支払い単価（入会資材・左固定）/ 支払い単価（進級・右入力） -->
+<tr>
+  <td class="right">生花 支払い単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">7,000</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="shinkyuPrc" value="3000" class="inp" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 行14: 生花人数（入会資材・左入力）/ 人数（進級・右入力） -->
+<tr>
+  <td class="right">生花 人数</td>
+  <td><input type="number" id="nyukaiShizaiSeikaNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="shinkyuNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 行15: 生花受け取り単価（入会資材・左固定）/ 受け取り単価（進級・右固定） -->
+<tr>
+  <td class="right">生花 受け取り単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">8,000</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d" style="text-align:right;padding-right:4px;color:#555;">3,800</td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 行15b: プリザーブド支払い単価（入会資材）/ 空白右 -->
+<tr>
+  <td class="right">プリザーブド 支払い単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">7,000</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 行15c: プリザーブド人数（入会資材・左入力）/ 空白右 -->
+<tr>
+  <td class="right">プリザーブド 人数</td>
+  <td><input type="number" id="nyukaiShizaiPrizaNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 行15d: プリザーブド受け取り単価（入会資材・左固定）/ 空白右 -->
+<tr>
+  <td class="right bb1d">プリザーブド 受け取り単価</td>
+  <td class="bb1d" style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">8,000</td>
+  <td class="unit bb1d">円</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- テキスト代（右計算）-->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="center dgreen">テキスト代</td>
+  <td><input type="number" id="textTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 行16: 空白左 / 支払い単価（テキスト・右入力） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="textPrc" value="2000" class="inp" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 行17: 空白左 / 人数（テキスト・右入力） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="textNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 行18: 体験者用ヘッダ（左）/ 受け取り単価（テキスト・右固定） -->
+<tr>
+  <td colspan="3" class="sect">体験者用</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d" style="text-align:right;padding-right:4px;color:#555;">2,500</td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 空白 / オリジナル資材費 -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="center dgreen">オリジナル資材費</td>
+  <td><input type="number" id="originalTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 体験花材費計 / 支払い単価（オリジナル） -->
+<tr>
+  <td class="orange">体験花材費計</td>
+  <td><input type="number" id="taikenTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="originalPrc" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 単価（体験）/ 人数（オリジナル） -->
+<tr>
+  <td class="right">単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">2,700</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="originalNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 人数（体験）/ 受け取り単価（オリジナル） -->
+<tr>
+  <td class="right bb1d">人数</td>
+  <td class="bb1d"><input type="number" id="taikenNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">人</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d"><input type="number" id="originalUretori" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 売上金計算用単価ヘッダ / 検定受験費 -->
+<tr>
+  <td colspan="3" class="sect" style="font-size:9.5pt;">売上金計算用単価</td>
+  <td class="nb"></td>
+  <td class="center dgreen">検定受験費</td>
+  <td><input type="number" id="kenteTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 維持費単価 / 支払い単価（検定） -->
+<tr>
+  <td class="center">維持費単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">500</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="kentePrc" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 花材売上利益単価 / 人数（検定） -->
+<tr>
+  <td class="center orange">花材売上利益単価</td>
+  <td style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">1,000</td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="kenteNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 入会資材利益単価 / 受け取り単価（検定） -->
+<tr>
+  <td class="center dgreen bb1d">入会資材利益単価</td>
+  <td class="bb1d" style="text-align:right;padding-right:4px;font-weight:bold;color:#333;">1,000</td>
+  <td class="unit bb1d">円</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d"><input type="number" id="kenteUretori" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 空白 / プリザーブド・P -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="center dgreen">プリザーブド・P</td>
+  <td><input type="number" id="prizaPTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 未収入金・預り金ヘッダ / 支払い単価（P） -->
+<tr>
+  <td colspan="3" class="sect">未収入金・預り金 集計</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="prizaPPrc" value="2900" class="inp" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 前回未収金残（表示のみ・E16から取得）/ 人数（P） -->
+<tr>
+  <td class="center">前回未収金残</td>
+  <td><input type="number" id="prevMishuZandaka" class="ro black"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="prizaPNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 今回 未収入金=>売上 / 受け取り単価（P）→固定 -->
+<tr>
+  <td class="center red">今回 未収入金=&gt;売上</td>
+  <td><input type="number" id="mishuSell" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d" style="text-align:right;padding-right:4px;color:#555;">4,400</td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 今回 未収入金受取 / 空白右 -->
+<tr>
+  <td class="center">今回 未収入金受取</td>
+  <td><input type="number" id="mishuGet" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 未収入金残高（計算）/ プリザーブド・C -->
+<tr>
+  <td class="center red bb2d">未収入金残高</td>
+  <td class="bb2d"><input type="number" id="mishuZandaka" class="ro red"></td>
+  <td class="unit bb2d">円</td>
+  <td class="nb"></td>
+  <td class="center dgreen">プリザーブド・C</td>
+  <td><input type="number" id="prizaCTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 前回預り金残（表示のみ・E19から取得）/ 支払い単価（C） -->
+<tr>
+  <td class="center">前回預り金残</td>
+  <td><input type="number" id="prevAzukariZandaka" class="ro black"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="prizaCPrc" value="5700" class="inp" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 今回 預り余剰金 / 人数（C） -->
+<tr>
+  <td class="center">今回 預り余剰金</td>
+  <td><input type="number" id="azukariYo" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="prizaCNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 以前 預り金=>売上 / 受け取り単価（C）→固定 -->
+<tr>
+  <td class="center">以前 預り金=&gt;売上</td>
+  <td><input type="number" id="azukariSell" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d" style="text-align:right;padding-right:4px;color:#555;">7,700</td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 預り金残高（計算）/ 空白右 -->
+<tr>
+  <td class="center bb1d">預かり金残高</td>
+  <td class="bb1d"><input type="number" id="azukariZandaka" class="ro black"></td>
+  <td class="unit bb1d">円</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 空白 / ＊＊＊＊＊1（追加項目1） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td><input type="text" id="extra1Name" class="inp" placeholder="項目名（任意）" oninput="calc()"></td>
+  <td><input type="number" id="extra1Total" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 売上合計金額ヘッダ / 支払い単価（追加1） -->
+<tr>
+  <td colspan="3" class="sect bt2">売上合計金額</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="extra1Prc" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 売上合計(除 自家消費）/ 人数（追加1） -->
+<tr>
+  <td class="dblue">売上合計(除 自家消費）</td>
+  <td><input type="number" id="uriageGokei" class="ro dblue"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="extra1Num" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 花材合計 / 受け取り単価（追加1） -->
+<tr>
+  <td class="right orange">花材合計</td>
+  <td><input type="number" id="hanaTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d"><input type="number" id="extra1Uretori" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 資材合計 / ＊＊＊＊＊2（追加項目2） -->
+<tr>
+  <td class="right dgreen">資材合計</td>
+  <td><input type="number" id="shizaiTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td><input type="text" id="extra2Name" class="inp" placeholder="項目名（任意）" oninput="calc()"></td>
+  <td><input type="number" id="extra2Total" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 花材売上単価 / 支払い単価（追加2） -->
+<tr>
+  <td class="right orange">花材売上単価</td>
+  <td><input type="number" id="hanaSellPrc" class="ro dgreen"></td>
+  <td></td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="extra2Prc" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 入会資材費単価 / 人数（追加2） -->
+<tr>
+  <td class="right dgreen">入会資材費単価</td>
+  <td><input type="number" id="nyukaiShizaiSellPrc" class="ro dgreen"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="extra2Num" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 調整金額 / 受け取り単価（追加2） -->
+<tr>
+  <td class="right bb1d">調整金額(±）</td>
+  <td class="bb1d"><input type="number" id="chosei" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">円</td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d"><input type="number" id="extra2Uretori" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 空白 / ＊＊＊＊＊3（追加項目3） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td><input type="text" id="extra3Name" class="inp" placeholder="項目名（任意）" oninput="calc()"></td>
+  <td><input type="number" id="extra3Total" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 加盟金 / 支払い単価（追加3） -->
+<tr>
+  <td class="bt2 bb2 bold center" style="border-left:2px solid #555;border-right:2px solid #555;">加盟金</td>
+  <td class="bt2 bb2"><input type="number" id="kamei" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="bt2 bb2 unit" style="border-right:2px solid #555;">円</td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="extra3Prc" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 空白 / 人数（追加3） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="extra3Num" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 空白 / 受け取り単価（追加3） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d"><input type="number" id="extra3Uretori" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 空白 / ＊＊＊＊＊4（追加項目4） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td><input type="text" id="extra4Name" class="inp" placeholder="項目名（任意）" oninput="calc()"></td>
+  <td><input type="number" id="extra4Total" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 空白 / 支払い単価（追加4） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="extra4Prc" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 空白 / 人数（追加4） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="extra4Num" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 空白 / 受け取り単価（追加4） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="right bb1d">受け取り単価</td>
+  <td class="bb1d"><input type="number" id="extra4Uretori" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 空白 / 自家消費 -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="center dgreen" style="background:#e8f4ec;font-size:9.5pt;">自家消費</td>
+  <td><input type="number" id="jikaShoTotal" class="ro dgreen"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 現金集計用ヘッダ / 支払い単価（自家消費） -->
+<tr>
+  <td colspan="3" class="nb" style="height:6px;border-top:1px solid #ccc;"></td>
+  <td class="nb"></td>
+  <td class="right">支払い単価</td>
+  <td><input type="number" id="jikaShoPrc" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 現金集計用ヘッダ / 人数（自家消費） -->
+<tr>
+  <td colspan="3" class="sect-blue">現金 集計用</td>
+  <td class="nb"></td>
+  <td class="right">人数</td>
+  <td><input type="number" id="jikaShoNum" class="inp" min="0" placeholder="0" oninput="calc()"></td>
+  <td class="unit">人</td>
+</tr>
+
+<!-- 前回入出金日 / 受け取り単価（自家消費）→固定 -->
+<tr>
+  <td class="right">前回入出金日</td>
+  <td><input type="date" id="zenkaiDate" class="inp" oninput="calc()"></td>
+  <td></td>
+  <td class="nb"></td>
+  <td class="right">受け取り単価</td>
+  <td style="text-align:right;padding-right:4px;color:#555;">0</td>
+  <td class="unit">円</td>
+</tr>
+
+<!-- 空白左 / 自家消費金額(売上） -->
+<tr>
+  <td></td><td></td><td></td>
+  <td class="nb"></td>
+  <td class="dgreen bb1d" style="font-size:9.5pt;">自家消費金額(売上）</td>
+  <td class="bb1d"><input type="number" id="jikaShoUriage" class="ro dgreen"></td>
+  <td class="unit bb1d">円</td>
+</tr>
+
+<!-- 残高（左）/ 空白右 -->
+<tr>
+  <td class="right bb1d">残高</td>
+  <td class="bb1d"><input type="number" id="zandaka" value="105900" class="inp" oninput="calc()" style="color:#0066CC;font-weight:bold;"></td>
+  <td class="unit bb1d">円</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 日付（表示）-->
+<tr>
+  <td class="right bold blue">日付</td>
+  <td><input type="text" id="dispDate" class="ro black" style="text-align:left;"></td>
+  <td></td><td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 売上合計（現金集計用） -->
+<tr>
+  <td class="dblue">売上合計(除 自家消費）</td>
+  <td><input type="number" id="uriageGokei2" class="ro dblue"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 未収・預り金 -->
+<tr>
+  <td class="right">未収・預り金(±）</td>
+  <td><input type="number" id="mishuAzukari" class="ro black" style="border:1px solid #bbb;background:transparent;"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+
+<!-- 空白 -->
+<tr><td colspan="7" class="nb" style="height:4px;"></td></tr>
+
+<!-- 銀行入金 -->
+<tr>
+  <td class="center red">銀行入金（-）</td>
+  <td><input type="number" id="ginko" class="inp" placeholder="0" oninput="calc()" style="color:#C00000;font-weight:bold;"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td><td colspan="3"></td>
+</tr>
+
+<!-- その他入金 -->
+<tr>
+  <td class="center">その他入金（+）</td>
+  <td><input type="number" id="sonotaIn" class="inp" placeholder="0" oninput="calc()"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td><td colspan="3"></td>
+</tr>
+
+<!-- その他出金 -->
+<tr>
+  <td class="center red">その他出金（-）</td>
+  <td><input type="number" id="sonotaOut" class="inp" placeholder="0" oninput="calc()" style="color:#C00000;"></td>
+  <td class="unit">円</td>
+  <td class="nb"></td><td colspan="3"></td>
+</tr>
+
+<!-- 現在手持ち額 -->
+<tr>
+  <td class="center bb1d">現在手持ち額</td>
+  <td class="bb1d"><input type="number" id="temochi" class="ro blue"></td>
+  <td class="unit bb1d">円</td>
+  <td class="nb"></td><td colspan="3"></td>
+</tr>
+
+<!-- 空白 -->
+<tr><td colspan="7" class="nb" style="height:8px;border-top:1px solid #ccc;"></td></tr>
+
+<!-- 花材口座合計金額 -->
+<tr>
+  <td class="bold">花材口座合計金額</td>
+  <td colspan="2"></td>
+  <td class="nb"></td>
+  <td colspan="3"></td>
+</tr>
+<tr>
+  <td class="right bold" style="padding-right:6px;">￥</td>
+  <td colspan="2"><input type="number" id="hanaKoza" class="ro dgreen"></td>
+  <td class="nb"></td><td colspan="3"></td>
+</tr>
+
+<!-- 空白 -->
+<tr><td colspan="7" class="nb" style="height:4px;"></td></tr>
+
+<!-- 資材口座合計金額 -->
+<tr>
+  <td class="bold">資材口座合計金額</td>
+  <td colspan="2"></td>
+  <td class="nb"></td><td colspan="3"></td>
+</tr>
+<tr>
+  <td class="right bold" style="padding-right:6px;">￥</td>
+  <td colspan="2"><input type="number" id="shizaiKoza" class="ro dgreen"></td>
+  <td class="nb"></td><td colspan="3"></td>
+</tr>
+
+<tr><td colspan="7" class="nb" style="height:12px;"></td></tr>
+</tbody>
+</table>
+</div><!-- /wrap -->
+
+<div id="dropOv">📊 ここにドロップしてExcelを開く</div>
+<div id="toast"></div>
+
+<script>
+// ═════════════════════════════════
+// 計算ロジック
+// ═════════════════════════════════
+function n(id){ return parseFloat(document.getElementById(id)?.value)||0; }
+function s(id){ return document.getElementById(id)?.value||''; }
+function set(id,v){
+  const e=document.getElementById(id);
+  if(!e) return;
+  e.value = (v!==null&&v!==undefined&&v!=='') ? Math.round(v) : '';
+}
+
+function calc(){
+  // 曜日表示
+  const kd=s('kDate');
+  const yArr=['日','月','火','水','木','金','土'];
+  document.getElementById('youbi').textContent = kd ? yArr[new Date(kd).getDay()]+'曜' : '';
+  document.getElementById('dispDate').value    = kd ? new Date(kd).toLocaleDateString('ja-JP') : '';
+
+  // ── 入会者用 ──
+  // 入会花材費計 = 生花人数×2700 ＋ プリザーブド人数×2900
+  const nyukaiHana  = n('nyukaiHanaSeikaNum') * 2700 + n('nyukaiHanaPrizaNum') * 2900;
+  const nyukaiShizaiSeikaPrc = 7000;   // 生花支払い単価（固定）
+  const nyukaiShizaiPrizaPrc = 7000;   // プリザーブド支払い単価（固定）
+  const nyukaiShizai = nyukaiShizaiSeikaPrc * n('nyukaiShizaiSeikaNum')
+                     + nyukaiShizaiPrizaPrc  * n('nyukaiShizaiPrizaNum');
+  set('nyukaiHanaTotal',   nyukaiHana);
+  set('nyukaiShizaiTotal', nyukaiShizai);
+
+  // ── 体験者用 ──
+  const taiken = n('taikenNum') * 2700;
+  set('taikenTotal', taiken);
+
+  // ── 受講者用 花材費合計（B7: 生花人数×2700 ＋ プリザーブド人数×2900）──
+  const jukoHana = 2700 * n('jukoSeikaNum') + 2900 * n('prizaNum');
+  set('jukoHanaTotal', jukoHana);
+  set('jukoHanaTotal', jukoHana);
+
+  // ── 受講者用 資材費 ──
+  const shinkyu   = n('shinkyuPrc')   * n('shinkyuNum');
+  const text      = n('textPrc')      * n('textNum');
+  const original  = n('originalPrc')  * n('originalNum');
+  const kente     = n('kentePrc')     * n('kenteNum');
+  const prizaP    = n('prizaPPrc')    * n('prizaPNum');
+  const prizaC    = n('prizaCPrc')    * n('prizaCNum');
+  const extra1    = n('extra1Prc')    * n('extra1Num');
+  const extra2    = n('extra2Prc')    * n('extra2Num');
+  const extra3    = n('extra3Prc')    * n('extra3Num');
+  const extra4    = n('extra4Prc')    * n('extra4Num');
+  const jikaSho   = n('jikaShoPrc')   * n('jikaShoNum');
+  set('shinkyuTotal',  shinkyu);
+  set('textTotal',     text);
+  set('originalTotal', original);
+  set('kenteTotal',    kente);
+  set('prizaPTotal',   prizaP);
+  set('prizaCTotal',   prizaC);
+  set('extra1Total',   extra1);
+  set('extra2Total',   extra2);
+  set('extra3Total',   extra3);
+  set('extra4Total',   extra4);
+  set('jikaShoTotal',  jikaSho);
+
+  // 自家消費金額（売上）
+  const jikaShoUriage = jikaSho; // 仕入=売上（自家消費は売上に計上しない）
+  set('jikaShoUriage', jikaShoUriage);
+
+  // ── 売上計算用単価（固定値から計算）──
+  const hanaSellPrc = 2700 + 500 + 1000;  // 生花単価 + 維持費 + 利益 = 4200
+  set('hanaSellPrc', hanaSellPrc);
+  set('nyukaiShizaiSellPrc', 7000 + 1000);  // 入会資材単価 + 利益 = 8000
+
+  // ── 花材合計（受け取り単価ベース：受講者生花＋受講者プリザーブド＋体験者）──
+  const hana = (n('jukoSeikaNum') + n('prizaNum') + n('taikenNum')) * hanaSellPrc;
+  set('hanaTotal', hana);
+
+  // ── 資材合計 ──
+  const shizai = nyukaiShizai + shinkyu + text + original + kente + prizaP + prizaC
+               + extra1 + extra2 + extra3 + extra4;
+  set('shizaiTotal', shizai);
+
+  // ── 未収・預り ──
+  const mishuZ   = n('prevMishuZandaka')   + n('mishuSell')   - n('mishuGet');
+  const azukariZ = n('prevAzukariZandaka') + n('azukariYo')  - n('azukariSell');
+  set('mishuZandaka',   mishuZ);
+  set('azukariZandaka', azukariZ);
+
+  // ── 売上合計 ──
+  const uriage = hana + shizai
+    + nyukaiHana
+    + (n('nyukaiShizaiSeikaNum') * 8000)  // 入会資材 生花 受け取り単価（固定）
+    + (n('nyukaiShizaiPrizaNum') * 8000)  // 入会資材 プリザーブド 受け取り単価（固定）
+    + taiken
+    + n('kamei')
+    + n('chosei')
+    + n('mishuSell')
+    + n('azukariSell');
+  set('uriageGokei',  uriage);
+  set('uriageGokei2', uriage);
+
+  // ── 口座合計 ──
+  // 花材口座 = 受講者花材仕入(jukoHana) + 入会花材仕入(nyukaiHana) + 体験花材仕入
+  const hanaKoza   = jukoHana + nyukaiHana + n('taikenNum') * 2700;
+  const shizaiKoza = shinkyu + text + original + kente + prizaP + prizaC
+                   + extra1 + extra2 + extra3 + extra4 + nyukaiShizai;
+  set('hanaKoza',   hanaKoza);
+  set('shizaiKoza', shizaiKoza);
+
+  // ── 未収・預り金（現金集計用） ──
+  const mishuAzukari = mishuZ + azukariZ;
+  set('mishuAzukari', mishuAzukari);
+
+  // ── 現在手持ち額 ──
+  const temochi = n('zandaka') + uriage + mishuAzukari
+    - n('ginko') + n('sonotaIn') - n('sonotaOut');
+  set('temochi', temochi);
+}
+
+// ═════════════════════════════════
+// クリア
+// ═════════════════════════════════
+function clearForm(silent=false){
+  if(!wb){
+    // Excelなしの場合はHTMLのみクリア
+    if(!silent && !confirm('HTMLの入力内容をクリアします。よろしいですか？')) return;
+    _clearHtmlOnly();
+    return;
+  }
+  if(!silent && !confirm('Excelの列を移動してHTMLをクリアします。よろしいですか？')) return;
+
+  // ── Excel: 売上・費用集計 と 現金集計 のD列前に新列挿入 ──
+  insertColumnBeforeD(wb.Sheets['売り上げ・費用集計']);
+  insertColumnBeforeD(wb.Sheets['現金集計']);
+
+  // ── Excel保存 ──
+  const fname='2026年_ARIA_売上_経費計算_修正版.xlsx';
+  if(graphToken){
+    toast('列移動中… OneDriveに保存しています','');
+    saveToOneDrive().then(ok=>{
+      if(ok) toast('列移動完了！OneDriveに保存しました ✅','ok');
+    });
+  } else {
+    XLSX.writeFile(wb, fname);
+    toast('列移動完了！ダウンロードされました','ok');
+  }
+
+  // ── HTMLクリア（単価系は保持）──
+  const keepIds=['shinkyuPrc','textPrc','prizaPPrc','prizaCPrc'];
+  document.querySelectorAll('.inp').forEach(e=>{
+    if(keepIds.includes(e.id)) return;
+    if(e.type==='date') e.value='';
+    else if(e.tagName==='SELECT') e.value='';
+    else e.value='';
+  });
+  document.getElementById('kDate').value = new Date().toISOString().split('T')[0];
+
+  // ── シフト後のE列から前回データを読み込んで表示 ──
+  // デバッグ：シフト直後のE列確認
+  const _ws3chk = wb.Sheets['現金集計'];
+  const _ws2chk = wb.Sheets['売り上げ・費用集計'];
+  console.log('clearForm内 直接確認 E7:', _ws3chk ? _ws3chk['E7'] : 'ws3なし');
+  console.log('clearForm内 直接確認 E14:', _ws3chk ? _ws3chk['E14'] : 'ws3なし');
+  console.log('clearForm内 直接確認 E16:', _ws2chk ? _ws2chk['E16'] : 'ws2なし');
+  loadPrevDataFromE();
+  calc();
+}
+
+// ── HTMLのみクリア（Excelなし版）──
+function _clearHtmlOnly(){
+  const keepIds=['shinkyuPrc','textPrc','prizaPPrc','prizaCPrc'];
+  document.querySelectorAll('.inp').forEach(e=>{
+    if(keepIds.includes(e.id)) return;
+    if(e.type==='date') e.value='';
+    else if(e.tagName==='SELECT') e.value='';
+    else e.value='';
+  });
+  document.getElementById('kDate').value = new Date().toISOString().split('T')[0];
+  calc();
+  toast('入力をクリアしました','ok');
+}
+
+// ── D列の前に空列を挿入してデータをシフトする ──
+function insertColumnBeforeD(ws){
+  // C列の後ろ（D列の前＝col index 3）に空列を挿入
+  // D列以降のデータをE列以降にずらす
+  if(!ws) return;
+  const ref = ws['!ref'];
+  if(!ref) return;
+  const range = XLSX.utils.decode_range(ref);
+
+  // D列以降のセルを収集してJSON文字列でディープコピー後に移動
+  const moves = {};
+  for(let R = range.s.r; R <= range.e.r; R++){
+    for(let C = range.e.c; C >= 3; C--){
+      const from = XLSX.utils.encode_cell({r:R, c:C});
+      if(ws[from]){
+        const to = XLSX.utils.encode_cell({r:R, c:C+1});
+        // ディープコピー（数式・スタイル含む）
+        moves[to] = JSON.parse(JSON.stringify(ws[from]));
+        delete ws[from];
+      }
+    }
+  }
+  // 移動先に書き込み
+  Object.keys(moves).forEach(addr => { ws[addr] = moves[addr]; });
+
+  // !refを1列拡張
+  range.e.c += 1;
+  ws['!ref'] = XLSX.utils.encode_range(range);
+  // デバッグ：シフト後のE7,E14,E16,E19を確認
+  console.log('列挿入完了:', ws['!ref']);
+  console.log('シフト後E7:', ws['E7'], 'E14:', ws['E14']);
+}
+
+// ── XLSXの日付シリアル値をYYYY-MM-DD文字列に変換 ──
+function xlDateToStr(v){
+  if(!v && v !== 0) return null;
+  let d;
+  if(v instanceof Date){
+    d = v;
+  } else if(typeof v === 'number'){
+    // Excelシリアル値→Dateに変換（XLSX.SSF利用）
+    d = new Date(Math.round((v - 25569) * 86400 * 1000));
+  } else if(typeof v === 'string'){
+    d = new Date(v);
+  } else {
+    return null;
+  }
+  if(isNaN(d)) return null;
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth()+1).padStart(2,'0');
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
+
+// ── シフト後E列から前回データを読み込んでHTMLに反映 ──
+function loadPrevDataFromE(){
+  const ws2 = wb.Sheets['売り上げ・費用集計'];
+  const ws3 = wb.Sheets['現金集計'];
+
+  console.log('loadPrevDataFromE開始');
+
+  // 現金集計 E7(前回の講座日) → 前回入出金日
+  if(ws3){
+    const e7 = ws3['E7'];
+    console.log('E7:', e7);
+    if(e7 && e7.v !== undefined){
+      const ds = xlDateToStr(e7.v);
+      if(ds) document.getElementById('zenkaiDate').value = ds;
+    }
+    // 現金集計 E14(前回の現在手持ち額) → 残高
+    const e14 = ws3['E14'];
+    console.log('E14:', e14);
+    if(e14 && e14.v !== undefined) document.getElementById('zandaka').value = e14.v;
+  } else {
+    console.log('ws3(現金集計)が見つかりません');
+  }
+
+  // 売上・費用集計 E16(前回未収金残) → 前回未収金残
+  if(ws2){
+    const e16 = ws2['E16'];
+    console.log('E16:', e16);
+    if(e16 && e16.v !== undefined) document.getElementById('prevMishuZandaka').value = e16.v;
+    // 売上・費用集計 E19(前回預り金残) → 前回預り金残
+    const e19 = ws2['E19'];
+    console.log('E19:', e19);
+    if(e19 && e19.v !== undefined) document.getElementById('prevAzukariZandaka').value = e19.v;
+  } else {
+    console.log('ws2(売上費用集計)が見つかりません');
+  }
+}
+
+// ═════════════════════════════════
+// Excel読み込み
+// ═════════════════════════════════
+let wb=null;
+document.getElementById('xlFile').addEventListener('change',e=>{
+  if(e.target.files[0]) loadXl(e.target.files[0]);
+});
+function loadXl(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true});
+    document.getElementById('fileLabel').textContent=file.name;
+    ['bClear','bGenkin','bClear2'].forEach(id=>document.getElementById(id).disabled=false);
+    loadFromXl();
+    toast('Excelファイルを読み込みました','ok');
+  };
+  r.readAsBinaryString(file);
+}
+function gc(addr){
+  if(!wb) return null;
+  const ws=wb.Sheets['振込明細計算'];
+  if(!ws||!ws[addr]) return null;
+  return ws[addr].v;
+}
+function loadFromXl(){
+  const pairings=[
+    ['J14','shinkyuPrc'],['J18','textPrc'],
+    ['J30','prizaPPrc'],['J34','prizaCPrc'],
+  ];
+  pairings.forEach(([addr,id])=>{
+    const v=gc(addr);
+    if(v!==null&&v!==undefined){ document.getElementById(id).value=v; }
+  });
+  // 残高
+  const zd=gc('B51'); if(zd) document.getElementById('zandaka').value=zd;
+  // 前回入出金日
+  const dt=gc('B50');
+  if(dt instanceof Date) document.getElementById('zenkaiDate').value=dt.toISOString().split('T')[0];
+  // 売上・費用集計シートのE16（前回未収金残）・E19（前回預り金残）を読み込む
+  const ws2=wb.Sheets['売り上げ・費用集計'];
+  if(ws2){
+    const e16=ws2['E16']; if(e16&&e16.v!==undefined) document.getElementById('prevMishuZandaka').value=e16.v;
+    const e19=ws2['E19']; if(e19&&e19.v!==undefined) document.getElementById('prevAzukariZandaka').value=e19.v;
+  }
+  calc();
+}
+
+// ═════════════════════════════════
+// Excel転記・出力
+// ═════════════════════════════════
+function sc(ws,addr,val){
+  if(!ws) return;
+  if(!ws[addr]) ws[addr]={};
+  const c=ws[addr];
+  if(val===null||val===undefined||val===''){ c.t='z';c.v='';c.w='';return; }
+  if(val instanceof Date){
+    // 時刻を切り捨て、日付のみ（YYYY/MM/DD）で書き込む
+    const d=new Date(val.getFullYear(),val.getMonth(),val.getDate());
+    c.t='d';c.v=d;
+    c.w=d.getFullYear()+'/'+(String(d.getMonth()+1).padStart(2,'0'))+'/'+String(d.getDate()).padStart(2,'0');
+    c.z='yyyy/mm/dd';
+  }
+  else if(typeof val==='number'){ c.t='n';c.v=val;c.w=String(val); }
+  else { c.t='s';c.v=String(val);c.w=String(val); }
+}
+
+function doExport(mode){
+  if(!wb){ toast('先にExcelファイルを開いてください','err'); return; }
+
+  const ws1=wb.Sheets['振込明細計算'];
+  const ws2=wb.Sheets['売り上げ・費用集計'];
+  const ws3=wb.Sheets['現金集計'];
+  const kd=s('kDate');
+  const ky=s('kyoshitsu');
+  const kDate=kd?new Date(kd):null;
+
+  if(mode==='clear'){
+    // ── 振込明細計算 Tab（全項目・固定値含む）──
+    if(kDate) sc(ws1,'B3',kDate);               // 講座日
+    if(ky)    sc(ws1,'J3',ky);                  // 教室名
+
+    // 左列（B列）入会者用
+    sc(ws1,'B8', 2700);                         // 生花支払い単価（固定）
+    sc(ws1,'B9', n('nyukaiHanaSeikaNum')||0); // 入会花材 生花人数
+    sc(ws1,'B10',2900);                         // プリザーブド支払い単価（固定）
+    sc(ws1,'B11',n('nyukaiHanaPrizaNum')||0); // 入会花材 プリザーブド人数
+    sc(ws1,'B14',7000);                         // 入会資材 生花支払い単価（固定）
+    sc(ws1,'B15',n('nyukaiShizaiSeikaNum')||0); // 入会資材 生花人数
+    sc(ws1,'B16',8000);                         // 入会資材 生花受け取り単価（固定）
+    sc(ws1,'B17',7000);                         // 入会資材 プリザーブド支払い単価（固定）
+    sc(ws1,'B18',n('nyukaiShizaiPrizaNum')||0);  // 入会資材 プリザーブド人数
+    sc(ws1,'B19',8000);                         // 入会資材 プリザーブド受け取り単価（固定）
+
+    // 左列（B列）体験者用
+    sc(ws1,'B23',2700);                         // 体験 単価（固定）
+    sc(ws1,'B24',n('taikenNum')||0);          // 体験花材 人数
+
+    // 左列（B列）売上計算用単価
+    sc(ws1,'B26',500);                          // 維持費単価（固定）
+    sc(ws1,'B27',1000);                         // 花材売上利益単価（固定）
+    sc(ws1,'B28',1000);                         // 入会資材利益単価（固定）
+
+    // 左列（B列）未収・預り
+    sc(ws1,'B31',n('mishuSell')||0);          // 今回 未収入金=>売上
+    sc(ws1,'B32',n('mishuGet')||0);           // 今回 未収入金受取
+    sc(ws1,'B34',n('azukariYo')||0);          // 今回 預り余剰金
+    sc(ws1,'B35',n('azukariSell')||0);        // 以前 預り金=>売上
+
+    // 左列（B列）売上合計・調整・加盟金
+    sc(ws1,'B44',n('chosei')||0);             // 調整金額
+    sc(ws1,'B46',n('kamei')||0);              // 加盟金
+
+    // 左列（B列）現金集計用
+    sc(ws1,'B50',s('zenkaiDate') ? new Date(s('zenkaiDate')) : null); // 前回入出金日
+    sc(ws1,'B51',n('zandaka')||0);            // 残高
+    sc(ws1,'B56',n('ginko')||0);              // 銀行入金
+    sc(ws1,'B57',n('sonotaIn')||0);           // その他入金
+    sc(ws1,'B58',n('sonotaOut')||0);          // その他出金
+
+    // 右列（J列）受講者用
+    sc(ws1,'J8', 2700);                         // 支払い単価（固定）
+    sc(ws1,'J9', n('jukoSeikaNum')||0);       // 受講者 生花人数
+    sc(ws1,'J14',n('shinkyuPrc')||0);         // 進級セット 支払い単価
+    sc(ws1,'J15',n('shinkyuNum')||0);         // 進級セット 人数
+    sc(ws1,'J16',3800);                         // 進級セット 受け取り単価（固定）
+    sc(ws1,'J18',n('textPrc')||0);            // テキスト代 支払い単価
+    sc(ws1,'J19',n('textNum')||0);            // テキスト代 人数
+    sc(ws1,'J20',2500);                         // テキスト代 受け取り単価（固定）
+    sc(ws1,'J22',n('originalPrc')||0);        // オリジナル資材費 支払い単価
+    sc(ws1,'J23',n('originalNum')||0);        // オリジナル資材費 人数
+    sc(ws1,'J24',n('originalUretori')||0);    // オリジナル資材費 受け取り単価
+    sc(ws1,'J26',n('kentePrc')||0);           // 検定受験費 支払い単価
+    sc(ws1,'J27',n('kenteNum')||0);           // 検定受験費 人数
+    sc(ws1,'J28',n('kenteUretori')||0);       // 検定受験費 受け取り単価
+    sc(ws1,'J30',2900);                         // プリザーブド・P 支払い単価（固定）
+    sc(ws1,'J31',n('prizaPNum')||0);          // プリザーブド・P 人数
+    sc(ws1,'J32',4400);                         // プリザーブド・P 受け取り単価（固定）
+    sc(ws1,'J34',5700);                         // プリザーブド・C 支払い単価（固定）
+    sc(ws1,'J35',n('prizaCNum')||0);          // プリザーブド・C 人数
+    sc(ws1,'J36',7700);                         // プリザーブド・C 受け取り単価（固定）
+    sc(ws1,'J38',n('extra1Prc')||0);          // *****1 支払い単価
+    sc(ws1,'J39',n('extra1Num')||0);          // *****1 人数
+    sc(ws1,'J40',n('extra1Uretori')||0);      // *****1 受け取り単価
+    sc(ws1,'J42',n('extra2Prc')||0);          // *****2 支払い単価
+    sc(ws1,'J43',n('extra2Num')||0);          // *****2 人数
+    sc(ws1,'J44',n('extra2Uretori')||0);      // *****2 受け取り単価
+    sc(ws1,'J46',n('extra3Prc')||0);          // *****3 支払い単価
+    sc(ws1,'J47',n('extra3Num')||0);          // *****3 人数
+    sc(ws1,'J48',n('extra3Uretori')||0);      // *****3 受け取り単価
+    sc(ws1,'J50',n('extra4Prc')||0);          // *****4 支払い単価
+    sc(ws1,'J51',n('extra4Num')||0);          // *****4 人数
+    sc(ws1,'J52',n('extra4Uretori')||0);      // *****4 受け取り単価
+    sc(ws1,'J54',n('jikaShoPrc')||0);         // 自家消費 支払い単価
+    sc(ws1,'J55',n('jikaShoNum')||0);         // 自家消費 人数
+    // 追加項目の項目名も転記
+    sc(ws1,'I37',s('extra1Name')||'');
+    sc(ws1,'I41',s('extra2Name')||'');
+    sc(ws1,'I45',s('extra3Name')||'');
+    sc(ws1,'I49',s('extra4Name')||'');
+
+    // ── 売上集計 Tab（修正版・D列）全項目完全転記 ──
+    if(ws2){
+      if(kDate) sc(ws2,'D3',kDate);             // 開講日
+      sc(ws2,'D4',ky||'');                      // 教室（空でも上書き）
+
+      // 売上合計・口座合計（計算結果）
+      sc(ws2,'D5', n('uriageGokei')||0);     // 売上合計
+      sc(ws2,'D6', n('hanaTotal')||0);       // 花材合計
+      sc(ws2,'D7', n('shizaiTotal')||0);     // 資材合計
+      sc(ws2,'D8', 4200);                       // 花材売上単価（固定）
+      sc(ws2,'D9', 8000);                       // 資材売上単価（固定）
+      sc(ws2,'D10',n('chosei')||0);           // 調整金額
+      sc(ws2,'D11',n('hanaKoza')||0);         // 花材口座合計
+      sc(ws2,'D12',n('shizaiKoza')||0);       // 資材口座合計
+
+      // 未収・預り
+      sc(ws2,'D14',n('mishuSell')||0);      // 今回 未収入金=>売上
+      sc(ws2,'D15',n('mishuGet')||0);       // 今回 未収入金受取
+      sc(ws2,'D16',n('mishuZandaka')||0);   // 未収入金残高
+      sc(ws2,'D17',n('azukariYo')||0);      // 今回 預り余剰金
+      sc(ws2,'D18',n('azukariSell')||0);    // 以前 預り金=>売上
+      sc(ws2,'D19',n('azukariZandaka')||0); // 預かり金残高
+
+      // 受講者 花材費合計＋仕入単価固定
+      sc(ws2,'D21',n('jukoHanaTotal')||0);   // 花材費合計
+      sc(ws2,'D22',2700);                       // 仕入単価（固定）
+      sc(ws2,'D23',n('jukoSeikaNum')||0);    // 生花人数
+      // D24 受け取り単価は計算式セルのため転記不要
+
+      // 進級セット
+      sc(ws2,'D25',n('shinkyuTotal')||0);
+      sc(ws2,'D26',n('shinkyuPrc')||0);      // 仕入単価
+      sc(ws2,'D27',n('shinkyuNum')||0);
+      sc(ws2,'D28',3800);                       // 受け取り単価（固定）
+
+      // テキスト代
+      sc(ws2,'D29',n('textTotal')||0);
+      sc(ws2,'D30',n('textPrc')||0);         // 仕入単価
+      sc(ws2,'D31',n('textNum')||0);
+      sc(ws2,'D32',2500);                       // 受け取り単価（固定）
+
+      // オリジナル資材費
+      sc(ws2,'D33',n('originalTotal')||0);
+      sc(ws2,'D34',n('originalPrc')||0);
+      sc(ws2,'D35',n('originalNum')||0);
+      sc(ws2,'D36',n('originalUretori')||0);
+
+      // 検定受験費
+      sc(ws2,'D37',n('kenteTotal')||0);
+      sc(ws2,'D38',n('kentePrc')||0);
+      sc(ws2,'D39',n('kenteNum')||0);
+      sc(ws2,'D40',n('kenteUretori')||0);
+
+      // プリザーブド・P
+      sc(ws2,'D41',n('prizaPTotal')||0);
+      sc(ws2,'D42',n('prizaPPrc')||0);       // 仕入単価
+      sc(ws2,'D43',n('prizaPNum')||0);
+      sc(ws2,'D44',4400);                       // 受け取り単価（固定）
+
+      // プリザーブド・C
+      sc(ws2,'D45',n('prizaCTotal')||0);
+      sc(ws2,'D46',n('prizaCPrc')||0);       // 仕入単価
+      sc(ws2,'D47',n('prizaCNum')||0);
+      sc(ws2,'D48',7700);                       // 受け取り単価（固定）
+
+      // *****1〜4（費計・仕入単価・人数・受け取り単価・項目名）
+      sc(ws2,'D49',n('extra1Total')||0);     sc(ws2,'D50',n('extra1Prc')||0);
+      sc(ws2,'D51',n('extra1Num')||0);       sc(ws2,'D52',n('extra1Uretori')||0);
+      sc(ws2,'D53',n('extra2Total')||0);     sc(ws2,'D54',n('extra2Prc')||0);
+      sc(ws2,'D55',n('extra2Num')||0);       sc(ws2,'D56',n('extra2Uretori')||0);
+      sc(ws2,'D57',n('extra3Total')||0);     sc(ws2,'D58',n('extra3Prc')||0);
+      sc(ws2,'D59',n('extra3Num')||0);       sc(ws2,'D60',n('extra3Uretori')||0);
+      sc(ws2,'D61',n('extra4Total')||0);     sc(ws2,'D62',n('extra4Prc')||0);
+      sc(ws2,'D63',n('extra4Num')||0);       sc(ws2,'D64',n('extra4Uretori')||0);
+      // 項目名も転記
+      sc(ws2,'B49',s('extra1Name')||'');
+      sc(ws2,'B53',s('extra2Name')||'');
+      sc(ws2,'B57',s('extra3Name')||'');
+      sc(ws2,'B61',s('extra4Name')||'');
+
+      // 自家消費
+      sc(ws2,'D65',n('jikaShoTotal')||0);
+      sc(ws2,'D66',n('jikaShoPrc')||0);      // 仕入単価
+      sc(ws2,'D67',n('jikaShoNum')||0);
+      sc(ws2,'D68',0);                          // 受け取り単価（固定0）
+      sc(ws2,'D69',n('jikaShoUriage')||0);   // 自家消費額（売上）
+
+      // 入会者
+      sc(ws2,'D71',n('nyukaiHanaTotal')||0);
+      sc(ws2,'D72',2700);                       // 生花仕入単価（固定）
+      sc(ws2,'D73',n('nyukaiHanaSeikaNum')||0);
+      sc(ws2,'D74',2900);                       // プリザーブド仕入単価（固定）
+      sc(ws2,'D75',n('nyukaiHanaPrizaNum')||0);
+      sc(ws2,'D77',n('nyukaiShizaiTotal')||0);
+      sc(ws2,'D78',7000);                       // 生花仕入単価（固定）
+      sc(ws2,'D79',n('nyukaiShizaiSeikaNum')||0);
+      sc(ws2,'D80',8000);                       // 生花受け取り単価（固定）
+      sc(ws2,'D81',7000);                       // プリザーブド仕入単価（固定）
+      sc(ws2,'D82',n('nyukaiShizaiPrizaNum')||0);
+      sc(ws2,'D83',8000);                       // プリザーブド受け取り単価（固定）
+
+      // 体験者（D85〜D87）
+      sc(ws2,'D85',n('taikenTotal')||0);
+      sc(ws2,'D86',2700);                       // 仕入単価（固定）
+      sc(ws2,'D87',n('taikenNum')||0);
+
+      // 加盟金（D89）
+      sc(ws2,'D89',n('kamei')||0);            // 加盟金
+    }
+  }
+
+  if(mode==='genkin'){
+    if(ws3){
+      const zd=s('zenkaiDate');
+      // 日付は時刻なしで YYYY/MM/DD に正規化
+      if(zd){
+        const zdDate=new Date(zd+'T00:00:00');
+        sc(ws3,'D5',zdDate);
+      }
+      sc(ws3,'D6',n('zandaka'));
+      if(kDate){
+        const kDateOnly=new Date(s('kDate')+'T00:00:00');
+        sc(ws3,'D7',kDateOnly);
+      }
+      sc(ws3,'D8',n('uriageGokei'));
+      sc(ws3,'D9',n('mishuAzukari'));
+      sc(ws3,'D11',n('ginko')||0);      // 銀行入金
+      sc(ws3,'D12',n('sonotaIn')||0);   // その他入金
+      sc(ws3,'D13',n('sonotaOut')||0);  // その他出金
+    }
+  }
+
+  const fname='2026年_ARIA_売上_経費計算_修正版_'+(kd?kd.replace(/-/g,''):'output')+'.xlsx';
+  const nm={clear:'売上集計転記',genkin:'現金集計転記'};
+
+  if(graphToken){
+    toast(nm[mode]+'中… OneDriveに保存しています','');
+    saveToOneDrive().then(ok=>{
+      if(ok){
+        toast(nm[mode]+'完了！OneDriveに保存しました ✅','ok');
+      }
+    });
+  } else {
+    XLSX.writeFile(wb,fname);
+    toast(nm[mode]+'完了！ダウンロードされました','ok');
+  }
+}
+
+// ═════════════════════════════════
+// ドラッグ＆ドロップ
+// ═════════════════════════════════
+document.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropOv').classList.add('on');});
+document.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.getElementById('dropOv').classList.remove('on');});
+document.addEventListener('drop',e=>{
+  e.preventDefault();
+  document.getElementById('dropOv').classList.remove('on');
+  const f=e.dataTransfer.files[0];
+  if(f) loadXl(f);
+});
+
+// ═════════════════════════════════
+// トースト
+// ═════════════════════════════════
+let _tt=null;
+function toast(msg,type=''){
+  const e=document.getElementById('toast');
+  e.textContent=msg; e.className='on '+(type||'');
+  if(_tt) clearTimeout(_tt);
+  _tt=setTimeout(()=>e.className='',3500);
+}
+
+// 初期化
+window.onload=()=>{
+  document.getElementById('kDate').value=new Date().toISOString().split('T')[0];
+  loadSettings();
+  calc();
+  // ログイン済みならアカウント表示
+  if(window.msal && msalApp){
+    const accounts = msalApp.getAllAccounts();
+    if(accounts.length > 0) updateLoginUI(accounts[0]);
+  }
+};
+
+// ═════════════════════════════════
+// 設定パネル
+// ═════════════════════════════════
+function showSettings(){
+  const cid = localStorage.getItem('aria_cid')||'';
+  const path = localStorage.getItem('aria_path')||"/まさみFolder/お花関係Folder/まさみ'ｓ 特別File/お花関係/ARIA/2026年_ARIA_売上_経費計算_修正版.xlsx";
+  document.getElementById('cfgClientId').value = cid;
+  document.getElementById('cfgPath').value = path;
+  document.getElementById('settingsPanel').style.display='flex';
+}
+function closeSettings(){
+  document.getElementById('settingsPanel').style.display='none';
+}
+function saveSettings(){
+  const cid  = document.getElementById('cfgClientId').value.trim();
+  const path = document.getElementById('cfgPath').value.trim();
+  if(!cid){ alert('Client IDを入力してください'); return; }
+  localStorage.setItem('aria_cid', cid);
+  localStorage.setItem('aria_path', path);
+  closeSettings();
+  toast('設定を保存しました。ログインします…','ok');
+  setTimeout(()=>initMsal(cid), 500);
+}
+function loadSettings(){
+  // 保存済みClient IDがあれば自動的にMSALを初期化＆ログイン試行
+  try {
+    const cid = localStorage.getItem('aria_cid');
+    if(cid) setTimeout(()=>initMsal(cid, true), 800);  // 自動ログインはサイレントのみ
+  } catch(e) {
+    console.log('loadSettings error:', e);
+  }
+}
+
+// ═════════════════════════════════
+// Microsoft Graph API / MSAL
+// ═════════════════════════════════
+let msalApp = null;
+let graphToken = null;
+
+async function handleMsLogin(){
+  const cid = localStorage.getItem('aria_cid');
+  if(!cid){
+    toast('まず⚙️ボタンからClient IDを設定してください','err');
+    showSettings();
+    return;
+  }
+  initMsal(cid, false);
+}
+
+async function initMsal(cid, silent=false){
+  _initMsal(cid, silent);
+}
+
+async function _initMsal(cid, silent){
+  try{
+    msalApp = new msal.PublicClientApplication({
+      auth:{
+        clientId: cid,
+        authority: 'https://login.microsoftonline.com/organizations',
+        redirectUri: 'https://glistening-phoenix-267f67.netlify.app',
+      },
+      cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:true }
+    });
+    await msalApp.initialize();
+
+    // まずサイレントログインを試行（既存セッション）
+    const accounts = msalApp.getAllAccounts();
+    if(accounts.length > 0){
+      try{
+        const res = await msalApp.acquireTokenSilent({
+          scopes:['Files.ReadWrite','User.Read'],
+          account: accounts[0]
+        });
+        graphToken = res.accessToken;
+        updateLoginUI(accounts[0]);
+        toast('自動ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');
+        await loadFromOneDrive();
+        return;
+      }catch(e){ /* サイレント失敗時はポップアップへ */ }
+    }
+
+    // セッションなし → silentモード時はポップアップを出さない
+    if(silent) return;
+    toast('Microsoftにログインしてください…','');
+    const res = await msalApp.loginPopup({scopes:['Files.ReadWrite','User.Read']});
+    const tokenRes = await msalApp.acquireTokenSilent({
+      scopes:['Files.ReadWrite','User.Read'],
+      account: res.account
+    });
+    graphToken = tokenRes.accessToken;
+    updateLoginUI(res.account);
+    toast('ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');
+    await loadFromOneDrive();
+
+  }catch(e){
+    // ポップアップがブロックされた場合などはボタンを表示したまま
+    console.log('ログインエラー:', e.message);
+  }
+}
+
+function updateLoginUI(account){
+  // ログイン状態を緑に
+  document.getElementById('loginDot').style.background = '#70AD47';
+  document.getElementById('loginStatusText').textContent = '✅ ' + account.username;
+  // ログインボタンをログアウトに変更
+  document.getElementById('msBtnText').textContent = 'ログアウト';
+  document.getElementById('msBtn').onclick = doLogout;
+  document.getElementById('msBtn').style.background = '#f2f2f2';
+  document.getElementById('msBtn').style.color = '#333';
+  // Excelを開くボタンを非表示
+  document.getElementById('xlFileLabel').style.display = 'none';
+  document.getElementById('fileLabel').textContent = '';
+  // 転記ボタンを有効化
+  ['bClear','bGenkin','bClear2'].forEach(id=>document.getElementById(id).disabled=false);
+}
+
+function doLogout(){
+  if(msalApp) msalApp.logoutPopup();
+  graphToken = null;
+  // 未接続表示に戻す
+  document.getElementById('loginDot').style.background = '#ff6b6b';
+  document.getElementById('loginStatusText').textContent = '未接続';
+  document.getElementById('msBtnText').textContent = 'Microsoftでログイン';
+  document.getElementById('msBtn').onclick = handleMsLogin;
+  document.getElementById('msBtn').style.background = '#fff';
+  document.getElementById('msBtn').style.color = '#4472C4';
+  // Excelを開くボタンを再表示
+  document.getElementById('xlFileLabel').style.display = '';
+  document.getElementById('fileLabel').textContent = '（ファイル未選択）';
+  // 転記ボタンを無効化
+  ['bClear','bGenkin','bClear2'].forEach(id=>document.getElementById(id).disabled=true);
+}
+
+// ── OneDriveからExcelを読み込む ──
+async function loadFromOneDrive(){
+  if(!graphToken) return;
+  const path = localStorage.getItem('aria_path');
+  if(!path) return;
+  try{
+    toast('OneDriveからデータを読み込み中…','');
+    const url = `https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;
+    const res = await fetch(url, {headers:{Authorization:'Bearer '+graphToken}});
+    if(!res.ok) throw new Error('ファイル読み込みエラー: '+res.status);
+    const blob = await res.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    wb = XLSX.read(arrayBuffer, {type:'array', cellStyles:true, cellFormulas:true});
+    loadFromXl();
+    toast('OneDriveからデータを読み込みました','ok');
+  }catch(e){
+    toast('読み込みエラー：'+e.message,'err');
+  }
+}
+
+// ── OneDriveへExcelを書き込む ──
+async function saveToOneDrive(){
+  if(!graphToken) return false;
+  const path = localStorage.getItem('aria_path');
+  if(!path) return false;
+  try{
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = `https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;
+    const res = await fetch(url, {
+      method:'PUT',
+      headers:{Authorization:'Bearer '+graphToken, 'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'},
+      body: blob
+    });
+    if(!res.ok) throw new Error('書き込みエラー: '+res.status);
+    return true;
+  }catch(e){
+    toast('OneDrive書き込みエラー：'+e.message,'err');
+    return false;
+  }
+}
+</script>
+</body>
+</html>
