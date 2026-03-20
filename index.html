@@ -1156,23 +1156,24 @@ function insertColumnBeforeD(ws){
 
 // ── XLSXの日付シリアル値をYYYY-MM-DD文字列に変換 ──
 function xlDateToStr(v){
-  if(!v && v !== 0) return null;
+  if(v === null || v === undefined) return null;
   let d;
   if(v instanceof Date){
     d = v;
   } else if(typeof v === 'number'){
-    // Excelシリアル値→Dateに変換（XLSX.SSF利用）
+    // Excelシリアル値→Date変換（1900年1月1日基準）
+    // 46087 → 2026/3/6 などのシリアル値
     d = new Date(Math.round((v - 25569) * 86400 * 1000));
   } else if(typeof v === 'string'){
     d = new Date(v);
   } else {
     return null;
   }
-  if(isNaN(d)) return null;
+  if(isNaN(d.getTime())) return null;
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth()+1).padStart(2,'0');
   const dd = String(d.getUTCDate()).padStart(2,'0');
-  return y+'-'+m+'-'+dd;
+  return y+'/'+m+'/'+dd;
 }
 
 // ── シフト後E列から前回データを読み込んでHTMLに反映 ──
@@ -1194,12 +1195,16 @@ function loadPrevDataFromE(){
     // E7(前回講座日) → 前回入出金日　※E列なければD5を使用
     const e7 = ws3['E7'] || ws3['D5'];
     if(e7 && e7.v !== undefined){
-      const ds = xlDateToStr(e7.v);
-      if(ds) document.getElementById('zenkaiDate').value = ds;
+      const ds = xlDateToStr(e7.v);  // YYYY/MM/DD
+      if(ds) document.getElementById('zenkaiDate').value = ds.replace(/\//g,'-');  // input[date]用にYYYY-MM-DD
     }
     // E14(前回現在手持ち額) → 残高　※E列なければD14を使用
     const e14 = ws3['E14'] || ws3['D14'];
-    if(e14 && e14.v !== undefined) document.getElementById('zandaka').value = e14.v;
+    console.log('e14.v=', e14 ? e14.v : 'none');
+    if(e14 && e14.v !== undefined) {
+      document.getElementById('zandaka').value = e14.v;
+      console.log('zandaka設定:', e14.v);
+    }
   }
 
   // 売上・費用集計シート
