@@ -1237,6 +1237,7 @@ function gc(addr){
   return ws[addr].v;
 }
 function loadFromXl(){
+  // 単価系は振込明細計算シートから取得
   const pairings=[
     ['J14','shinkyuPrc'],['J18','textPrc'],
     ['J30','prizaPPrc'],['J34','prizaCPrc'],
@@ -1245,17 +1246,9 @@ function loadFromXl(){
     const v=gc(addr);
     if(v!==null&&v!==undefined){ document.getElementById(id).value=v; }
   });
-  // 残高
-  const zd=gc('B51'); if(zd) document.getElementById('zandaka').value=zd;
-  // 前回入出金日
-  const dt=gc('B50');
-  if(dt instanceof Date) document.getElementById('zenkaiDate').value=dt.toISOString().split('T')[0];
-  // 売上・費用集計シートのE16（前回未収金残）・E19（前回預り金残）を読み込む
-  const ws2=wb.Sheets['売り上げ・費用集計'];
-  if(ws2){
-    const e16=ws2['E16']; if(e16&&e16.v!==undefined) document.getElementById('prevMishuZandaka').value=e16.v;
-    const e19=ws2['E19']; if(e19&&e19.v!==undefined) document.getElementById('prevAzukariZandaka').value=e19.v;
-  }
+  // 前回入出金日・残高・前回未収金残・前回預り金残 は
+  // 現金集計E7/E14・売上費用集計E16/E19 から取得
+  loadPrevDataFromE();
   calc();
 }
 
@@ -1491,7 +1484,7 @@ function doExport(mode){
         const zdDate=new Date(zd+'T00:00:00');
         sc(ws3,'D5',zdDate);
       }
-      sc(ws3,'D6',n('zandaka'));
+      sc(ws3,'D6',n('zandaka'));        // 残高（前回手持ち額）
       if(kDate){
         const kDateOnly=new Date(s('kDate')+'T00:00:00');
         sc(ws3,'D7',kDateOnly);
@@ -1501,6 +1494,7 @@ function doExport(mode){
       sc(ws3,'D11',n('ginko')||0);      // 銀行入金
       sc(ws3,'D12',n('sonotaIn')||0);   // その他入金
       sc(ws3,'D13',n('sonotaOut')||0);  // その他出金
+      sc(ws3,'D14',n('temochi'));        // 現在手持ち額
     }
   }
 
