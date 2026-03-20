@@ -1182,33 +1182,34 @@ function loadPrevDataFromE(){
 
   console.log('loadPrevDataFromE開始');
 
-  // 現金集計 E7(前回の講座日) → 前回入出金日
+  // 現金集計シート
   if(ws3){
-    const e7 = ws3['E7'];
-    console.log('E7:', e7);
+    // デバッグ：ws3の全キーを確認
+    const ws3keys = Object.keys(ws3).filter(k=>k[0]!=='!');
+    console.log('ws3キー一覧:', ws3keys.join(','));
+    console.log('ws3 !ref:', ws3['!ref']);
+    console.log('E7生データ:', ws3['E7']);
+    console.log('E14生データ:', ws3['E14']);
+
+    // E7(前回講座日) → 前回入出金日　※E列なければD5を使用
+    const e7 = ws3['E7'] || ws3['D5'];
     if(e7 && e7.v !== undefined){
       const ds = xlDateToStr(e7.v);
       if(ds) document.getElementById('zenkaiDate').value = ds;
     }
-    // 現金集計 E14(前回の現在手持ち額) → 残高
-    const e14 = ws3['E14'];
-    console.log('E14:', e14);
+    // E14(前回現在手持ち額) → 残高　※E列なければD14を使用
+    const e14 = ws3['E14'] || ws3['D14'];
     if(e14 && e14.v !== undefined) document.getElementById('zandaka').value = e14.v;
-  } else {
-    console.log('ws3(現金集計)が見つかりません');
   }
 
-  // 売上・費用集計 E16(前回未収金残) → 前回未収金残
+  // 売上・費用集計シート
   if(ws2){
+    // E16(前回未収金残) → 前回未収金残
     const e16 = ws2['E16'];
-    console.log('E16:', e16);
     if(e16 && e16.v !== undefined) document.getElementById('prevMishuZandaka').value = e16.v;
-    // 売上・費用集計 E19(前回預り金残) → 前回預り金残
+    // E19(前回預り金残) → 前回預り金残
     const e19 = ws2['E19'];
-    console.log('E19:', e19);
     if(e19 && e19.v !== undefined) document.getElementById('prevAzukariZandaka').value = e19.v;
-  } else {
-    console.log('ws2(売上費用集計)が見つかりません');
   }
 }
 
