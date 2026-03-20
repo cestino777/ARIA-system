@@ -1188,8 +1188,8 @@ function loadPrevDataFromE(){
     const ws3keys = Object.keys(ws3).filter(k=>k[0]!=='!');
     console.log('ws3キー一覧:', ws3keys.join(','));
     console.log('ws3 !ref:', ws3['!ref']);
-    console.log('E7生データ:', ws3['E7']);
-    console.log('E14生データ:', ws3['E14']);
+    console.log('E7生データ:', JSON.stringify(ws3['E7']));
+    console.log('E14生データ:', JSON.stringify(ws3['E14']));
 
     // E7(前回講座日) → 前回入出金日　※E列なければD5を使用
     const e7 = ws3['E7'] || ws3['D5'];
