@@ -1181,30 +1181,17 @@ function loadPrevDataFromE(){
   const ws2 = wb.Sheets['売り上げ・費用集計'];
   const ws3 = wb.Sheets['現金集計'];
 
-  console.log('loadPrevDataFromE開始');
-
   // 現金集計シート
   if(ws3){
-    // デバッグ：ws3の全キーを確認
-    const ws3keys = Object.keys(ws3).filter(k=>k[0]!=='!');
-    console.log('ws3キー一覧:', ws3keys.join(','));
-    console.log('ws3 !ref:', ws3['!ref']);
-    console.log('E7生データ:', JSON.stringify(ws3['E7']));
-    console.log('E14生データ:', JSON.stringify(ws3['E14']));
-
     // E7(前回講座日) → 前回入出金日　※E列なければD5を使用
     const e7 = ws3['E7'] || ws3['D5'];
     if(e7 && e7.v !== undefined){
-      const ds = xlDateToStr(e7.v);  // YYYY/MM/DD
-      if(ds) document.getElementById('zenkaiDate').value = ds.replace(/\//g,'-');  // input[date]用にYYYY-MM-DD
+      const ds = xlDateToStr(e7.v);
+      if(ds) document.getElementById('zenkaiDate').value = ds.replace(/\//g,'-');
     }
     // E14(前回現在手持ち額) → 残高　※E列なければD14を使用
     const e14 = ws3['E14'] || ws3['D14'];
-    console.log('e14.v=', e14 ? e14.v : 'none');
-    if(e14 && e14.v !== undefined) {
-      document.getElementById('zandaka').value = e14.v;
-      console.log('zandaka設定:', e14.v);
-    }
+    if(e14 && e14.v !== undefined) document.getElementById('zandaka').value = e14.v;
   }
 
   // 売上・費用集計シート
