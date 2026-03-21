@@ -8,112 +8,95 @@
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: "ＭＳ Ｐゴシック", "MS PGothic", "Meiryo", sans-serif;
-  font-size: 11pt;
-  background: #e8e8e8;
-}
+body { font-family: "ＭＳ Ｐゴシック","MS PGothic","Meiryo",sans-serif; font-size: 11pt; background: #e8e8e8; }
+
+/* ツールバー */
 #toolbar {
-  background: #4472C4; color: #fff;
-  padding: 7px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: #4472C4; color: #fff; padding: 7px 14px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
-#toolbar h1 { font-size: 12pt; font-weight: bold; flex: 1; min-width: 180px; }
+#toolbar h1 { font-size: 12pt; font-weight: bold; flex: 1; min-width: 160px; }
 .tbtn {
   background: #fff; color: #4472C4; border: none; border-radius: 3px;
-  padding: 5px 12px; font-size: 10pt; font-family: inherit; font-weight: bold;
+  padding: 5px 11px; font-size: 10pt; font-family: inherit; font-weight: bold;
   cursor: pointer; white-space: nowrap; flex-shrink: 0;
 }
 .tbtn:hover { background: #dde9f7; }
-.tbtn.green  { background: #70AD47; color: #fff; }
-.tbtn.green:hover  { background: #548235; }
-.tbtn.orange { background: #ED7D31; color: #fff; }
-.tbtn.orange:hover { background: #c55a11; }
-.tbtn.red    { background: #C00000; color: #fff; }
-.tbtn.red:hover    { background: #9c0000; }
-.tbtn.gray   { background: #f2f2f2; color: #333; }
-.tbtn.gray:hover   { background: #ddd; }
+.tbtn.green  { background: #70AD47; color: #fff; } .tbtn.green:hover  { background: #548235; }
+.tbtn.orange { background: #ED7D31; color: #fff; } .tbtn.orange:hover { background: #c55a11; }
+.tbtn.red    { background: #C00000; color: #fff; } .tbtn.red:hover    { background: #9c0000; }
+.tbtn.gray   { background: #f2f2f2; color: #333; } .tbtn.gray:hover   { background: #ddd; }
 .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
-#fileLabel { font-size: 9pt; opacity: 0.85; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#fileLabel { font-size: 9pt; opacity: 0.85; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-#wrap {
-  margin: 10px auto 30px; max-width: 1020px;
-  background: #fff; border: 1px solid #aaa; box-shadow: 0 2px 10px rgba(0,0,0,.15);
-}
-#sheetTab {
-  background: #f2f2f2; border-bottom: 1px solid #ccc;
-  padding: 5px 10px; font-size: 9.5pt; color: #555;
-}
+/* シートラッパー */
+#wrap { margin: 10px auto 30px; max-width: 1020px; background: #fff; border: 1px solid #aaa; box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+#sheetTab { background: #f2f2f2; border-bottom: 1px solid #ccc; padding: 5px 10px; font-size: 9.5pt; color: #555; }
 #sheetTab b { color: #4472C4; }
 
-/* ── テーブル（Excelの列A〜K対応）── */
+/* テーブル列幅（Excel A〜K列を再現） */
 table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-col.cA { width: 150px; }  /* A列：ラベル */
-col.cB { width: 74px;  }  /* B列：値 */
-col.cC { width: 26px;  }  /* C列：単位 */
-col.cD { width: 12px;  }  /* D〜H列：スペーサー */
+col.cA { width: 152px; }  /* A列：ラベル */
+col.cB { width: 76px;  }  /* B列：値 */
+col.cC { width: 28px;  }  /* C列：単位 */
+col.cD { width: 12px;  }  /* D〜H列：スペーサー（Excelの空白列） */
 col.cE { width: 12px;  }
 col.cF { width: 12px;  }
 col.cG { width: 12px;  }
 col.cH { width: 12px;  }
-col.cI { width: 150px; }  /* I列：ラベル */
-col.cJ { width: 74px;  }  /* J列：値 */
-col.cK { width: 26px;  }  /* K列：単位 */
+col.cI { width: 152px; }  /* I列：ラベル */
+col.cJ { width: 76px;  }  /* J列：値 */
+col.cK { width: 28px;  }  /* K列：単位 */
 
+/* セル共通 */
 td { border: 1px solid #d0d0d0; padding: 1px 4px; vertical-align: middle; white-space: nowrap; overflow: hidden; font-size: 10.5pt; height: 20px; }
-td.sp { border: none; background: #fff; padding: 0; }
-td.nb { border: none; }
-td.right  { text-align: right; padding-right: 5px; }
-td.center { text-align: center; }
-td.bold   { font-weight: bold; }
-td.unit   { text-align: left; padding-left: 2px; color: #555; font-size: 10pt; border-left: none; }
+td.sp  { border: none; background: #fff; padding: 0; }   /* スペーサー */
+td.nb  { border: none; }
+td.r   { text-align: right; padding-right: 5px; }
+td.c   { text-align: center; }
+td.bl  { font-weight: bold; }
+td.un  { text-align: left; padding-left: 2px; color: #555; font-size: 10pt; border-left: none; }
 
-td.sect      { font-weight: bold; font-size: 10pt; border: 2px solid #595959; text-align: center; background: #f2f2f2; }
-td.sect-cash { font-weight: bold; font-size: 10pt; border: 2px solid #4472C4; text-align: center; background: #dde9f7; color: #0066CC; }
+/* セクションヘッダ */
+td.sh  { font-weight: bold; font-size: 10pt; border: 2px solid #595959; text-align: center; background: #f2f2f2; }
+td.shc { font-weight: bold; font-size: 10pt; border: 2px solid #4472C4; text-align: center; background: #dde9f7; color: #0066CC; }
+/* 加盟金枠 */
 td.bt2 { border-top: 2px solid #595959; }
 td.bb2 { border-bottom: 2px solid #595959; }
 
-td.c-orange { color: #C55A11; }
-td.c-green  { color: #375623; }
-td.c-blue   { color: #1F3864; font-weight: bold; }
-td.c-dblue  { color: #0000FF; font-weight: bold; }
-td.c-red    { color: #C00000; }
-td.c-gray   { color: #666; font-size: 9.5pt; }
+/* 色クラス */
+td.or { color: #C55A11; }
+td.gn { color: #375623; }
+td.bl2 { color: #0000FF; font-weight: bold; }
+td.rd { color: #C00000; }
+td.gy { color: #666; font-size: 9.5pt; }
 
-.inp {
-  width: 100%; height: 18px; border: none; outline: none;
-  background: #CCFFCC; font-family: inherit; font-size: 10.5pt; padding: 0 3px; cursor: text;
-}
-.inp[type=number] { text-align: right; }
-.inp:focus { background: #FFFFAA; box-shadow: inset 0 0 0 2px #4472C4; }
-select.inp { background: #CCFFCC; cursor: pointer; height: 19px; }
+/* 入力欄（薄緑） */
+.inp { width:100%; height:18px; border:none; outline:none; background:#CCFFCC; font-family:inherit; font-size:10.5pt; padding:0 3px; cursor:text; }
+.inp[type=number] { text-align:right; }
+.inp:focus { background:#FFFFAA; box-shadow:inset 0 0 0 2px #4472C4; }
+select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
 
-.ro {
-  width: 100%; height: 18px; border: none; outline: none; background: transparent;
-  font-family: inherit; font-size: 10.5pt; padding: 0 3px; cursor: default; pointer-events: none; text-align: right;
-}
-.ro.orange { color: #C55A11; font-weight: bold; }
-.ro.green  { color: #375623; font-weight: bold; }
-.ro.blue   { color: #1F3864; font-weight: bold; }
-.ro.dblue  { color: #0000FF; font-weight: bold; }
-.ro.red    { color: #C00000; font-weight: bold; }
-.ro.black  { color: #333; font-weight: bold; }
+/* 読み取り専用（計算結果・固定値） */
+.ro { width:100%; height:18px; border:none; outline:none; background:transparent; font-family:inherit; font-size:10.5pt; padding:0 3px; cursor:default; pointer-events:none; text-align:right; }
+.ro.or { color:#C55A11; font-weight:bold; }
+.ro.gn { color:#375623; font-weight:bold; }
+.ro.bl { color:#1F3864; font-weight:bold; }
+.ro.b2 { color:#0000FF; font-weight:bold; }
+.ro.rd { color:#C00000; font-weight:bold; }
+.ro.bk { color:#333; font-weight:bold; }
 
-.fv { text-align: right; padding-right: 4px; font-weight: bold; color: #222; } /* 固定値 */
+/* 固定値（右寄せ太字） */
+.fv { text-align:right; padding-right:4px; font-weight:bold; color:#222; }
 
-#dropOv {
-  display: none; position: fixed; inset: 0; background: rgba(68,114,196,0.18);
-  border: 4px dashed #4472C4; z-index: 200; align-items: center; justify-content: center;
-  font-size: 18pt; color: #4472C4; font-weight: bold;
-}
-#dropOv.on { display: flex; }
-#toast {
-  position: fixed; bottom: 18px; right: 18px; background: #404040; color: #fff;
-  padding: 9px 18px; border-radius: 4px; font-size: 10pt; opacity: 0;
-  transition: opacity 0.3s; z-index: 300; box-shadow: 0 2px 8px rgba(0,0,0,.3);
-}
-#toast.on { opacity: 1; } #toast.ok { background: #70AD47; } #toast.err { background: #C00000; }
-#xlFile { display: none; }
+/* ドロップ */
+#dropOv { display:none; position:fixed; inset:0; background:rgba(68,114,196,0.18); border:4px dashed #4472C4; z-index:200; align-items:center; justify-content:center; font-size:18pt; color:#4472C4; font-weight:bold; }
+#dropOv.on { display:flex; }
+/* トースト */
+#toast { position:fixed; bottom:18px; right:18px; background:#404040; color:#fff; padding:9px 18px; border-radius:4px; font-size:10pt; opacity:0; transition:opacity 0.3s; z-index:300; box-shadow:0 2px 8px rgba(0,0,0,.3); }
+#toast.on { opacity:1; } #toast.ok { background:#70AD47; } #toast.err { background:#C00000; }
+#xlFile { display:none; }
 </style>
 </head>
 <body>
@@ -142,16 +125,13 @@ select.inp { background: #CCFFCC; cursor: pointer; height: 19px; }
   <div style="background:#fff;border-radius:8px;padding:28px;width:540px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
     <h2 style="font-size:13pt;color:#4472C4;margin-bottom:18px;">⚙️ Microsoft Graph API 設定</h2>
     <div style="margin-bottom:12px;">
-      <label style="font-size:9.5pt;font-weight:bold;color:#333;display:block;margin-bottom:4px;">Azure Client ID</label>
-      <input type="text" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-        style="width:100%;border:1.5px solid #ccc;border-radius:5px;padding:8px 10px;font-size:10pt;outline:none;">
+      <label style="font-size:9.5pt;font-weight:bold;display:block;margin-bottom:4px;">Azure Client ID</label>
+      <input type="text" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width:100%;border:1.5px solid #ccc;border-radius:5px;padding:8px 10px;font-size:10pt;outline:none;">
       <div style="font-size:8.5pt;color:#888;margin-top:3px;">Azure Portal → アプリの登録 → アプリケーション（クライアント）ID</div>
     </div>
     <div style="margin-bottom:20px;">
-      <label style="font-size:9.5pt;font-weight:bold;color:#333;display:block;margin-bottom:4px;">OneDrive上のExcelファイルパス</label>
-      <input type="text" id="cfgPath"
-        value="/まさみFolder/お花関係Folder/まさみ'ｓ 特別File/お花関係/ARIA/2026年_ARIA_売上_経費計算_修正版.xlsm"
-        style="width:100%;border:1.5px solid #ccc;border-radius:5px;padding:8px 10px;font-size:9.5pt;outline:none;">
+      <label style="font-size:9.5pt;font-weight:bold;display:block;margin-bottom:4px;">OneDrive上のExcelファイルパス</label>
+      <input type="text" id="cfgPath" value="/まさみFolder/お花関係Folder/まさみ'ｓ 特別File/お花関係/ARIA/2026年_ARIA_売上_経費計算_修正版.xlsm" style="width:100%;border:1.5px solid #ccc;border-radius:5px;padding:8px 10px;font-size:9.5pt;outline:none;">
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button onclick="closeSettings()" style="padding:8px 20px;border:1.5px solid #ccc;border-radius:5px;background:#f5f5f5;cursor:pointer;font-family:inherit;">キャンセル</button>
@@ -170,7 +150,16 @@ select.inp { background: #CCFFCC; cursor: pointer; height: 19px; }
 </colgroup>
 <tbody>
 
-<!-- 行1: B1タイトル -->
+<!--
+  ════════════════════════════════════════════════════════
+  Excel 振込明細計算シート 行1〜55 を完全再現
+  左列: A(ラベル) B(値) C(単位)
+  右列: I(ラベル) J(値) K(単位)
+  D〜H列: スペーサー
+  ════════════════════════════════════════════════════════
+-->
+
+<!-- 行1: B1=タイトル -->
 <tr>
   <td class="nb"></td>
   <td colspan="2" class="nb" style="font-size:13pt;font-weight:bold;padding:6px 4px 2px;">＜＜振込み明細計算＞＞</td>
@@ -179,493 +168,507 @@ select.inp { background: #CCFFCC; cursor: pointer; height: 19px; }
 </tr>
 <!-- 行2: 空白 -->
 <tr style="height:3px;"><td class="sp" colspan="11"></td></tr>
-<!-- 行3: A3講座日（入力） / I3教室名 -->
+
+<!-- 行3: A3=講座日（入力用） / I3=教室名； -->
 <tr>
-  <td class="right bold">講座日</td>
+  <td class="r bl">講座日</td>
   <td><input type="date" id="B3" class="inp" oninput="calc()"></td>
   <td class="nb" style="padding-left:2px;">（</td>
   <td class="sp"></td>
   <td id="D3w" colspan="2" class="nb" style="font-weight:bold;text-align:center;"></td>
   <td class="sp" colspan="2"></td>
-  <td class="c-gray right">教室名：</td>
+  <td class="gy r">教室名；</td>
   <td colspan="2"><select id="J3" class="inp" onchange="calc()">
     <option value="">選択</option><option>W葉山</option><option>W国際村</option><option>その他</option>
   </select></td>
 </tr>
-<!-- 行4: B4サブタイトル -->
+<!-- 行4: B4=サブタイトル -->
 <tr>
   <td class="nb"></td>
-  <td colspan="2" class="nb" style="font-size:8.5pt;color:#888;padding:1px 4px;">＜＜売上・振込み明細計算＞＞</td>
+  <td colspan="2" class="nb" style="font-size:8.5pt;color:#999;padding:1px 4px;">＜＜売上・振込み明細計算＞＞</td>
   <td class="sp" colspan="5"></td><td colspan="3" class="nb"></td>
 </tr>
 <!-- 行5: 空白 -->
 <tr style="height:3px;"><td class="sp" colspan="11"></td></tr>
-<!-- 行6: A6講座日（表示） / I6教室名（表示） -->
+
+<!-- 行6: A6=講座日（実データ表示用） / I6=教室名；（表示） -->
 <tr>
-  <td class="right bold">講座日</td>
-  <td><input type="text" id="B6d" class="ro black" style="text-align:left;font-size:9pt;"></td>
+  <td class="r bl">講座日</td>
+  <td><input type="text" id="B6d" class="ro bk" style="text-align:left;font-size:9pt;"></td>
   <td class="nb" style="padding-left:2px;">（</td>
   <td class="sp"></td>
   <td id="D6w" colspan="2" class="nb" style="font-weight:bold;text-align:center;font-size:9pt;"></td>
   <td class="sp" colspan="2"></td>
-  <td class="c-gray right">教室名：</td>
+  <td class="gy r">教室名；</td>
   <td id="J6d" colspan="2" style="font-weight:bold;padding-left:4px;border:1px solid #d0d0d0;"></td>
 </tr>
 <!-- 行7: 空白 -->
 <tr style="height:3px;"><td class="sp" colspan="11"></td></tr>
-<!-- 行8: セクションヘッダ -->
+
+<!-- 行8: A8=「花材費」ヘッダ / I8=「資材費」ヘッダ -->
 <tr>
-  <td class="sect" colspan="3">花材費</td>
+  <td class="sh" colspan="3">花材費</td>
   <td class="sp" colspan="5"></td>
-  <td class="sect" colspan="3">資材費</td>
+  <td class="sh" colspan="3">資材費</td>
 </tr>
-<!-- 行9: 花材費計(B9=B10*B11) / 進級セット(J9=J10*J11) -->
+
+<!-- 行9: A9=花材費計(B9=B10*B11) / I9=進級セット(J9=J10*J11) -->
 <tr>
-  <td class="c-orange bold">花材費 計</td>
-  <td><input type="number" id="B9" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td class="or bl">花材費 計</td>
+  <td><input type="number" id="B9" class="ro or"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="c-orange bold">進級セット</td>
-  <td><input type="number" id="J9" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td class="or bl">進級セット</td>
+  <td><input type="number" id="J9" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行10: 支払い単価B10=2700固定 / J10入力 -->
+<!-- 行10: A10=支払い単価 B10=2700固定 / I10=支払い単価 J10=入力 -->
 <tr>
-  <td class="right">支払い単価</td>
-  <td class="fv">2,700</td><td class="unit">円</td>
+  <td class="r">支払い単価</td>
+  <td class="fv">2,700</td><td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J10" value="3000" class="inp" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行11: 人数B11入力 / J11入力 -->
+<!-- 行11: A11=人数 B11=入力 / I11=人数 J11=入力 -->
 <tr>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="B11" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J11" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行12: 受取単価B12=4200固定 / J12=3800固定 -->
+<!-- 行12: A12=受取単価 B12=4200固定 / I12=受取単価 J12=3800固定 -->
 <tr>
-  <td class="right">受取単価</td>
-  <td class="fv">4,200</td><td class="unit">円</td>
+  <td class="r">受取単価</td>
+  <td class="fv">4,200</td><td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
-  <td class="fv">3,800</td><td class="unit">円</td>
+  <td class="r">受取単価</td>
+  <td class="fv">3,800</td><td class="un">円</td>
 </tr>
-<!-- 行13: プリザーブド・P計(B13=B14*B15) / テキスト代(J13=J14*J15) -->
+
+<!-- 行13: A13=プリザーブド・P計(B13=B14*B15) / I13=テキスト代(J13=J14*J15) -->
 <tr>
-  <td class="c-orange bold">プリザーブド・P　計</td>
-  <td><input type="number" id="B13" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td class="or bl">プリザーブド・P　計</td>
+  <td><input type="number" id="B13" class="ro or"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="c-orange bold">テキスト代</td>
-  <td><input type="number" id="J13" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td class="or bl">テキスト代</td>
+  <td><input type="number" id="J13" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行14: B14=2900固定 / J14入力 -->
+<!-- 行14: B14=2900固定 / J14=入力 -->
 <tr>
-  <td class="right">支払い単価</td>
-  <td class="fv">2,900</td><td class="unit">円</td>
+  <td class="r">支払い単価</td>
+  <td class="fv">2,900</td><td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J14" value="2000" class="inp" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行15: B15入力 / J15入力 -->
+<!-- 行15: B15=入力 / J15=入力 -->
 <tr>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="B15" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J15" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
 <!-- 行16: B16=4400固定 / J16=2500固定 -->
 <tr>
-  <td class="right">受取単価</td>
-  <td class="fv">4,400</td><td class="unit">円</td>
+  <td class="r">受取単価</td>
+  <td class="fv">4,400</td><td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
-  <td class="fv">2,500</td><td class="unit">円</td>
+  <td class="r">受取単価</td>
+  <td class="fv">2,500</td><td class="un">円</td>
 </tr>
-<!-- 行17: プリザーブド・C計(B17=B18*B19) / J17=J18*J19（追加0） -->
+
+<!-- 行17: A17=プリザーブド・C計(B17=B18*B19) / I17=なし J17=J18*J19（追加項目0） -->
 <tr>
-  <td class="c-orange bold">プリザーブド・C 計</td>
-  <td><input type="number" id="B17" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td class="or bl">プリザーブド・C 計</td>
+  <td><input type="number" id="B17" class="ro or"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I17" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J17" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I17" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J17" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行18: B18=5700固定 / J18入力 -->
+<!-- 行18: B18=5700固定 / I18=支払い単価 J18=入力 -->
 <tr>
-  <td class="right">支払い単価</td>
-  <td class="fv">5,700</td><td class="unit">円</td>
+  <td class="r">支払い単価</td>
+  <td class="fv">5,700</td><td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J18" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行19: B19入力 / J19入力 -->
+<!-- 行19: B19=入力 / I19=人数 J19=入力 -->
 <tr>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="B19" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J19" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行20: B20=7700固定 / J20入力 -->
+<!-- 行20: B20=7700固定 / I20=受取単価 J20=入力 -->
 <tr>
-  <td class="right">受取単価</td>
-  <td class="fv">7,700</td><td class="unit">円</td>
+  <td class="r">受取単価</td>
+  <td class="fv">7,700</td><td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J20" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行21: 空白左 / J21=J22*J23（追加1） -->
+
+<!-- 行21: 左空白 / I21=なし J21=J22*J23（追加項目1） -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I21" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J21" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I21" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J21" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行22: 未収入金・預り金集計ヘッダ / 支払い単価J22入力 -->
+<!-- 行22: A22=未収入金・預り金集計ヘッダ / I22=支払い単価 J22=入力 -->
 <tr>
-  <td class="sect" colspan="3">未収入金・預り金 集計</td>
+  <td class="sh" colspan="3">未収入金・預り金 集計</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J22" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行23: 前回未収金残(B23=売上費用集計!E12) / J23入力 -->
+<!-- 行23: A23=前回未収金　残(B23=売上・費用集計!E12) / I23=人数 J23=入力 -->
 <tr>
-  <td class="center">前回未収金　残</td>
-  <td><input type="number" id="B23" class="ro black"></td>
-  <td class="unit">円</td>
+  <td class="c">前回未収金　残</td>
+  <td><input type="number" id="B23" class="ro bk"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J23" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行24: 今回未収入金=>売上 B24入力 / J24入力 -->
+<!-- 行24: A24=今回未収入金=>売上 B24=入力 / I24=受取単価 J24=入力 -->
 <tr>
-  <td class="center c-red">今回 未収入金=&gt;売上</td>
+  <td class="c rd">今回 未収入金=&gt;売上</td>
   <td><input type="number" id="B24" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J24" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行25: 今回未収入金受取 B25入力 / J25=J26*J27（追加2） -->
+<!-- 行25: A25=今回未収入金受取 B25=入力 / I25=なし J25=J26*J27（追加項目2） -->
 <tr>
-  <td class="center">今回 未収入金受取</td>
+  <td class="c">今回 未収入金受取</td>
   <td><input type="number" id="B25" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I25" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J25" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I25" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J25" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行26: 未収入金残高(B26=B25-B24) / J26入力 -->
+<!-- 行26: A26=未収入金残高(B26=B25-B24) / I26=支払い単価 J26=入力 -->
 <tr>
-  <td class="center c-red bold">未収入金残高</td>
-  <td><input type="number" id="B26" class="ro red"></td>
-  <td class="unit">円</td>
+  <td class="c rd bl">未収入金残高</td>
+  <td><input type="number" id="B26" class="ro rd"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J26" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行27: 前回預り金残(B27=売上費用集計!E15) / J27入力 -->
+<!-- 行27: A27=前回預り金　残(B27=売上・費用集計!E15) / I27=人数 J27=入力 -->
 <tr>
-  <td class="center">前回預り金　残</td>
-  <td><input type="number" id="B27" class="ro black"></td>
-  <td class="unit">円</td>
+  <td class="c">前回預り金　残</td>
+  <td><input type="number" id="B27" class="ro bk"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J27" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行28: 今回預り余剰金 B28入力 / J28入力 -->
+<!-- 行28: A28=今回預り余剰金 B28=入力 / I28=受取単価 J28=入力 -->
 <tr>
-  <td class="center">今回 預り余剰金</td>
+  <td class="c">今回 預り余剰金</td>
   <td><input type="number" id="B28" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J28" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行29: 以前預り金=>売上 B29入力 / J29=J30*J31（追加3） -->
+<!-- 行29: A29=以前預り金=>売上 B29=入力 / I29=なし J29=J30*J31（追加項目3） -->
 <tr>
-  <td class="center">以前 預り金=&gt;売上</td>
+  <td class="c">以前 預り金=&gt;売上</td>
   <td><input type="number" id="B29" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I29" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J29" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I29" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J29" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行30: 預り金残高(B30=B28-B29) / J30入力 -->
+<!-- 行30: A30=預り金残高(B30=B28-B29) / I30=支払い単価 J30=入力 -->
 <tr>
-  <td class="center bold">預り金残高</td>
-  <td><input type="number" id="B30" class="ro black"></td>
-  <td class="unit">円</td>
+  <td class="c bl">預り金残高</td>
+  <td><input type="number" id="B30" class="ro bk"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J30" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行31: 空白左 / J31入力 -->
+<!-- 行31: 左空白 / I31=人数 J31=入力 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J31" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行32: 売上合計金額ヘッダ / J32入力 -->
+<!-- 行32: A32=売上合計金額ヘッダ / I32=受取単価 J32=入力 -->
 <tr>
-  <td class="sect" colspan="3">売上合計金額</td>
+  <td class="sh" colspan="3">売上合計金額</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J32" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行33: 売上合計(B33=B34+B35+B36) / J33=J34*J35（追加4） -->
+<!-- 行33: A33=売上合計(B33=B34+B35+B36) / I33=なし J33=J34*J35（追加項目4） -->
 <tr>
-  <td class="c-dblue bold">売上合計(除 自家消費）</td>
-  <td><input type="number" id="B33" class="ro dblue"></td>
-  <td class="unit">円</td>
+  <td class="bl2 bl">売上合計(除 自家消費）</td>
+  <td><input type="number" id="B33" class="ro b2"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I33" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J33" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I33" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J33" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行34: 花材合計(B34=計算) / J34入力 -->
+<!-- 行34: A34=花材合計(B34=B11*4200+B15*4400+B19*7700) / I34=支払い単価 J34=入力 -->
 <tr>
-  <td class="right c-orange">花材合計</td>
-  <td><input type="number" id="B34" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td class="r or">花材合計</td>
+  <td><input type="number" id="B34" class="ro or"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J34" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行35: 資材合計(B35=計算) / J35入力 -->
+<!-- 行35: A35=資材合計(B35=計算) / I35=人数 J35=入力 -->
 <tr>
-  <td class="right c-green">資材合計</td>
-  <td><input type="number" id="B35" class="ro green"></td>
-  <td class="unit">円</td>
+  <td class="r gn">資材合計</td>
+  <td><input type="number" id="B35" class="ro gn"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J35" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行36: 調整金額 B36入力 / J36入力 -->
+<!-- 行36: A36=調整金額 B36=入力 / I36=受取単価 J36=入力 -->
 <tr>
-  <td class="right">調整金額(±）</td>
+  <td class="r">調整金額(±）</td>
   <td><input type="number" id="B36" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J36" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行37: 空白左 / J37=J38*J39（追加5） -->
+<!-- 行37: 左空白 / I37=なし J37=J38*J39（追加項目5） -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I37" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J37" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I37" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J37" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行38: 加盟金 B38入力 / J38入力 -->
+<!-- 行38: A38=加盟金 B38=入力（太枠） / I38=支払い単価 J38=入力 -->
 <tr>
-  <td class="center bold bt2 bb2" style="border-left:2px solid #595959;border-right:2px solid #595959;">加盟金</td>
+  <td class="c bl bt2 bb2" style="border-left:2px solid #595959;border-right:2px solid #595959;">加盟金</td>
   <td class="bt2 bb2"><input type="number" id="B38" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="bt2 bb2 unit" style="border-right:2px solid #595959;">円</td>
+  <td class="bt2 bb2 un" style="border-right:2px solid #595959;">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J38" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行39: 空白左 / J39入力 -->
+<!-- 行39: 左空白 / I39=人数 J39=入力 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J39" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行40: 空白左 / J40入力 -->
+<!-- 行40: 左空白 / I40=受取単価 J40=入力 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J40" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行41: 現金集計用ヘッダ / J41=J42*J43（追加6） -->
+<!-- 行41: A41=現金集計用ヘッダ / I41=なし J41=J42*J43（追加項目6） -->
 <tr>
-  <td class="sect-cash" colspan="3">現金 集計用</td>
+  <td class="shc" colspan="3">現金 集計用</td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I41" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J41" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I41" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J41" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行42: 前回入出金日(B42=現金集計!E7) / J42入力 -->
+<!-- 行42: A42=前回入出金日(B42=現金集計!E7) / I42=支払い単価 J42=入力 -->
 <tr>
-  <td class="right">前回入出金日</td>
+  <td class="r">前回入出金日</td>
   <td><input type="date" id="B42" class="inp" oninput="calc()"></td>
   <td></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J42" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行43: 残高(B43=現金集計!E14) / J43入力 -->
+<!-- 行43: A43=残高(B43=現金集計!E14) / I43=人数 J43=入力 -->
 <tr>
-  <td class="right">残高</td>
+  <td class="r">残高</td>
   <td><input type="number" id="B43" class="inp" oninput="calc()" style="color:#1F3864;font-weight:bold;"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J43" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行44: 日付(B44=B6) / J44入力 -->
+<!-- 行44: A44=日付(B44=B6) / I44=受取単価 J44=入力 -->
 <tr>
-  <td class="right bold c-blue">日付</td>
-  <td><input type="text" id="B44" class="ro black" style="text-align:left;font-size:9.5pt;"></td>
+  <td class="r bl" style="color:#1F3864;">日付</td>
+  <td><input type="text" id="B44" class="ro bk" style="text-align:left;font-size:9.5pt;"></td>
   <td></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J44" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行45: 売上合計(B45=B33) / J45=J46*J47（追加7） -->
+<!-- 行45: A45=売上合計(B45=B33) / I45=なし J45=J46*J47（追加項目7） -->
 <tr>
-  <td class="c-dblue">売上合計(除 自家消費）</td>
-  <td><input type="number" id="B45" class="ro dblue"></td>
-  <td class="unit">円</td>
+  <td class="bl2">売上合計(除 自家消費）</td>
+  <td><input type="number" id="B45" class="ro b2"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td><input type="text" id="I45" class="inp" placeholder="項目名（任意）"></td>
-  <td><input type="number" id="J45" class="ro orange"></td>
-  <td class="unit">円</td>
+  <td><input type="text" id="I45" class="inp" placeholder="（項目名）" style="background:#FFF3CC;font-size:10pt;"></td>
+  <td><input type="number" id="J45" class="ro or"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行46: 未収・預り金(B46=計算) / J46入力 -->
+<!-- 行46: A46=未収・預り金(B46=計算) / I46=支払い単価 J46=入力 -->
 <tr>
-  <td class="right">未収・預り金(±）</td>
-  <td><input type="number" id="B46" class="ro black" style="border:1px solid #bbb;background:transparent;"></td>
-  <td class="unit">円</td>
+  <td class="r">未収・預り金(±）</td>
+  <td><input type="number" id="B46" class="ro bk" style="border:1px solid #bbb;background:transparent;"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J46" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行47: 空白左 / J47入力 -->
+<!-- 行47: 左空白 / I47=人数 J47=入力 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J47" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行48: 銀行入金 B48入力 / J48入力 -->
+<!-- 行48: A48=銀行入金 B48=入力 / I48=受取単価 J48=入力 -->
 <tr>
-  <td class="center c-red">銀行入金（-）</td>
+  <td class="c rd">銀行入金（-）</td>
   <td><input type="number" id="B48" class="inp" placeholder="0" oninput="calc()" style="color:#C00000;font-weight:bold;"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J48" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行49: その他入金 B49入力 / 空白右 -->
+<!-- 行49: A49=その他入金 B49=入力 / 右空白 -->
 <tr>
-  <td class="center">その他入金（+）</td>
+  <td class="c">その他入金（+）</td>
   <td><input type="number" id="B49" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
   <td colspan="3" class="nb"></td>
 </tr>
-<!-- 行50: その他出金 B50入力 / I50「自家消費」ヘッダ -->
+<!-- 行50: A50=その他出金 B50=入力 / I50=「自家消費」ヘッダ -->
 <tr>
-  <td class="center c-red">その他出金（-）</td>
+  <td class="c rd">その他出金（-）</td>
   <td><input type="number" id="B50" class="inp" placeholder="0" oninput="calc()" style="color:#C00000;"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="sect" colspan="3">自家消費</td>
+  <td class="sh" colspan="3">自家消費</td>
 </tr>
-<!-- 行51: 現在手持ち額(B51=計算) / 自家消費計(J51=J52*J53) -->
+<!-- 行51: A51=現在手持ち額(B51=計算) / I51=自家消費計(J51=J52*J53) -->
 <tr>
-  <td class="center c-blue bold">現在手持ち額</td>
-  <td><input type="number" id="B51" class="ro blue"></td>
-  <td class="unit">円</td>
+  <td class="c bl" style="color:#1F3864;">現在手持ち額</td>
+  <td><input type="number" id="B51" class="ro bl"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
-  <td class="c-green bold">自家消費　計</td>
-  <td><input type="number" id="J51" class="ro green"></td>
-  <td class="unit">円</td>
+  <td class="gn bl">自家消費　計</td>
+  <td><input type="number" id="J51" class="ro gn"></td>
+  <td class="un">円</td>
 </tr>
-<!-- 行52: 空白左 / J52入力 -->
+<!-- 行52: 左空白 / I52=支払い単価 J52=入力 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">支払い単価</td>
+  <td class="r">支払い単価</td>
   <td><input type="number" id="J52" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行53: 空白左 / J53入力 -->
+<!-- 行53: 左空白 / I53=人数 J53=入力 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">人数</td>
+  <td class="r">人数</td>
   <td><input type="number" id="J53" class="inp" min="0" placeholder="0" oninput="calc()"></td>
-  <td class="unit">人</td>
+  <td class="un">人</td>
 </tr>
-<!-- 行54: 空白左 / J54入力 -->
+<!-- 行54: 左空白 / I54=受取単価 J54=入力 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="right">受取単価</td>
+  <td class="r">受取単価</td>
   <td><input type="number" id="J54" class="inp" placeholder="0" oninput="calc()"></td>
-  <td class="unit">円</td>
+  <td class="un">円</td>
 </tr>
-<!-- 行55: 空白左 / 自家消費金額(売上)(J55=計算) -->
+<!-- 行55: 左空白 / I55=自家消費金額(売上) J55=計算 -->
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="c-green" style="font-size:9.5pt;">自家消費金額(売上）</td>
-  <td><input type="number" id="J55" class="ro green"></td>
-  <td class="unit">円</td>
+  <td class="gn" style="font-size:9.5pt;">自家消費金額(売上）</td>
+  <td><input type="number" id="J55" class="ro gn"></td>
+  <td class="un">円</td>
 </tr>
 
 <tr style="height:10px;"><td class="sp" colspan="11"></td></tr>
 </tbody>
 </table>
-</div>
+</div><!-- /wrap -->
 
 <div id="dropOv">📊 ここにドロップしてExcelを開く</div>
 <div id="toast"></div>
 
 <script>
+// ══════════════════════════════════════════════
+// ユーティリティ
+// ══════════════════════════════════════════════
 function n(id){ return parseFloat(document.getElementById(id)?.value)||0; }
 function s(id){ return document.getElementById(id)?.value||''; }
 function set(id,v){ const e=document.getElementById(id); if(!e)return; e.value=(v!==null&&v!==undefined&&v!=='') ? Math.round(v) : ''; }
 
+// ══════════════════════════════════════════════
+// 計算（Excelの数式に完全準拠）
+// ══════════════════════════════════════════════
 function calc(){
+  // 曜日・日付表示
   const kd=s('B3');
   const yArr=['日','月','火','水','木','金','土'];
   const youbi=kd?yArr[new Date(kd).getDay()]+'曜':'';
@@ -673,43 +676,72 @@ function calc(){
   document.getElementById('B6d').value=kd?new Date(kd).toLocaleDateString('ja-JP'):'';
   document.getElementById('D6w').textContent=youbi;
   document.getElementById('J6d').textContent=s('J3');
+  // B44=B6（日付）
   document.getElementById('B44').value=kd?new Date(kd).toLocaleDateString('ja-JP'):'';
 
-  // 花材費 B列
-  const B9 =2700*n('B11');              set('B9', B9);
-  const B13=2900*n('B15');              set('B13',B13);
-  const B17=5700*n('B19');              set('B17',B17);
+  // ── 左列 B列 ──
+  // B9=B10*B11=2700*B11
+  const B9=2700*n('B11');    set('B9',B9);
+  // B13=B14*B15=2900*B15
+  const B13=2900*n('B15');   set('B13',B13);
+  // B17=B18*B19=5700*B19
+  const B17=5700*n('B19');   set('B17',B17);
+  // B34=B11*B12+B15*B16+B19*B20 = B11*4200+B15*4400+B19*7700
   const B34=n('B11')*4200+n('B15')*4400+n('B19')*7700; set('B34',B34);
 
-  // 資材費 J列（J9〜J55）
-  const J9 =n('J10')*n('J11'); set('J9', J9);
+  // ── 右列 J列 ──
+  // J9=J10*J11
+  const J9 =n('J10')*n('J11'); set('J9',J9);
+  // J13=J14*J15
   const J13=n('J14')*n('J15'); set('J13',J13);
+  // J17=J18*J19（追加0）
   const J17=n('J18')*n('J19'); set('J17',J17);
+  // J21=J22*J23（追加1）
   const J21=n('J22')*n('J23'); set('J21',J21);
+  // J25=J26*J27（追加2）
   const J25=n('J26')*n('J27'); set('J25',J25);
+  // J29=J30*J31（追加3）
   const J29=n('J30')*n('J31'); set('J29',J29);
+  // J33=J34*J35（追加4）
   const J33=n('J34')*n('J35'); set('J33',J33);
+  // J37=J38*J39（追加5）
   const J37=n('J38')*n('J39'); set('J37',J37);
+  // J41=J42*J43（追加6）
   const J41=n('J42')*n('J43'); set('J41',J41);
+  // J45=J46*J47（追加7）
   const J45=n('J46')*n('J47'); set('J45',J45);
+  // J51=J52*J53（自家消費計）
   const J51=n('J52')*n('J53'); set('J51',J51);
-  const J55=(n('J54')*0.7>=n('J52'))?n('J54')*0.7*n('J53'):n('J52')*n('J53'); set('J55',J55);
+  // J55=IF(J54*0.7>=J52, J54*0.7*J53, J52*J53)
+  const J55=(n('J54')*0.7>=n('J52'))?n('J54')*0.7*n('J53'):n('J52')*n('J53');
+  set('J55',J55);
 
   // B35=(J12*J11)+(J15*J16)+(J19*J20)+(J23*J24)+(J27*J28)+(J31*J32)+(J35*J36)+(J39*J40)+(J43*J44)+(J47*J48)
+  // ※J12=3800固定、J16=2500固定
   const B35=3800*n('J11')+2500*n('J15')
-    +n('J20')*n('J19')+n('J24')*n('J23')+n('J28')*n('J27')+n('J32')*n('J31')
-    +n('J36')*n('J35')+n('J40')*n('J39')+n('J44')*n('J43')+n('J48')*n('J47');
+    +n('J20')*n('J19')+n('J24')*n('J23')
+    +n('J28')*n('J27')+n('J32')*n('J31')
+    +n('J36')*n('J35')+n('J40')*n('J39')
+    +n('J44')*n('J43')+n('J48')*n('J47');
   set('B35',B35);
 
-  const B26=n('B25')-n('B24');         set('B26',B26); // B26=B25-B24
-  const B30=n('B28')-n('B29');         set('B30',B30); // B30=B28-B29
-  const B33=B34+B35+n('B36');          set('B33',B33); // B33=B34+B35+B36
-  set('B45',B33);                                       // B45=B33
-  const B46=n('B28')-n('B24')+n('B25')-n('B29'); set('B46',B46); // B46=B28-B24+B25-B29
-  const B51=n('B43')+B33+B46-n('B48')+n('B49')-n('B50'); set('B51',B51); // B51=B43+B45+B46-B48+B49-B50
+  // B26=B25-B24（+F34、F34は未使用=0）
+  const B26=n('B25')-n('B24'); set('B26',B26);
+  // B30=B28-B29（+F37、F37は未使用=0）
+  const B30=n('B28')-n('B29'); set('B30',B30);
+  // B33=B34+B35+B36
+  const B33=B34+B35+n('B36'); set('B33',B33);
+  // B45=B33
+  set('B45',B33);
+  // B46=B28-B24+B25-B29
+  const B46=n('B28')-n('B24')+n('B25')-n('B29'); set('B46',B46);
+  // B51=B43+B45+B46-B48+B49-B50
+  const B51=n('B43')+B33+B46-n('B48')+n('B49')-n('B50'); set('B51',B51);
 }
 
-// ── クリア＆列シフト ──
+// ══════════════════════════════════════════════
+// クリア＆列シフト
+// ══════════════════════════════════════════════
 function clearForm(silent=false){
   if(!wb){
     if(!silent&&!confirm('HTMLの入力内容をクリアします。よろしいですか？'))return;
@@ -720,7 +752,7 @@ function clearForm(silent=false){
   insertColumnBeforeD(wb.Sheets['現金集計']);
   if(graphToken){
     toast('列シフト中… OneDriveに保存しています','');
-    saveToOneDrive().then(ok=>{if(ok) toast('列シフト完了！OneDriveに保存しました ✅','ok');});
+    saveToOneDrive().then(ok=>{if(ok)toast('列シフト完了！OneDriveに保存しました ✅','ok');});
   } else {
     XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm');
     toast('列シフト完了！ダウンロードされました','ok');
@@ -729,11 +761,11 @@ function clearForm(silent=false){
 }
 
 function _clearInputs(){
-  const keep=['J10','J14'];
+  const keep=['J10','J14']; // 単価デフォルト値を保持
   document.querySelectorAll('.inp').forEach(e=>{
     if(keep.includes(e.id))return;
-    if(e.type==='date') e.value='';
-    else if(e.tagName==='SELECT') e.value='';
+    if(e.type==='date')e.value='';
+    else if(e.tagName==='SELECT')e.value='';
     else e.value='';
   });
   document.getElementById('B3').value=new Date().toISOString().split('T')[0];
@@ -753,7 +785,9 @@ function insertColumnBeforeD(ws){
   range.e.c+=1; ws['!ref']=XLSX.utils.encode_range(range);
 }
 
-// ── 前回データ読込 ──
+// ══════════════════════════════════════════════
+// Excel前回データ読込（open時・列シフト後）
+// ══════════════════════════════════════════════
 function xlDateToStr(v){
   if(v===null||v===undefined)return null;
   let d;
@@ -764,20 +798,32 @@ function xlDateToStr(v){
   if(isNaN(d.getTime()))return null;
   return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
 }
+
 function loadPrevDataFromE(){
+  // B23=売上・費用集計!E12（前回未収金残）
+  // B27=売上・費用集計!E15（前回預り金残）
+  // B42=現金集計!E7（前回入出金日）
+  // B43=現金集計!E14（残高）
   if(!wb)return;
-  const ws2=wb.Sheets['売上・費用集計'], ws3=wb.Sheets['現金集計'];
+  const ws2=wb.Sheets['売上・費用集計'];
+  const ws3=wb.Sheets['現金集計'];
   if(ws3){
-    const e7=ws3['E7']; if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7.v);if(ds)document.getElementById('B42').value=ds;}
-    const e14=ws3['E14']; if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
+    const e7=ws3['E7'];
+    if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7.v);if(ds)document.getElementById('B42').value=ds;}
+    const e14=ws3['E14'];
+    if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
   }
   if(ws2){
-    const e12=ws2['E12']; if(e12&&e12.v!==undefined)document.getElementById('B23').value=e12.v;
-    const e15=ws2['E15']; if(e15&&e15.v!==undefined)document.getElementById('B27').value=e15.v;
+    const e12=ws2['E12'];
+    if(e12&&e12.v!==undefined)document.getElementById('B23').value=e12.v;
+    const e15=ws2['E15'];
+    if(e15&&e15.v!==undefined)document.getElementById('B27').value=e15.v;
   }
 }
 
-// ── Excel読込 ──
+// ══════════════════════════════════════════════
+// Excel読込
+// ══════════════════════════════════════════════
 let wb=null;
 document.getElementById('xlFile').addEventListener('change',e=>{if(e.target.files[0])loadXl(e.target.files[0]);});
 function loadXl(file){
@@ -786,73 +832,98 @@ function loadXl(file){
     wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true});
     document.getElementById('fileLabel').textContent=file.name;
     ['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);
-    loadFromXl(); toast('Excelファイルを読み込みました','ok');
+    loadFromXl();
+    toast('Excelファイルを読み込みました','ok');
   };
   r.readAsBinaryString(file);
 }
-function gc(addr){if(!wb)return null;const ws=wb.Sheets['振込明細計算'];if(!ws||!ws[addr])return null;return ws[addr].v;}
-function loadFromXl(){
-  [['J10','J10'],['J14','J14']].forEach(([a,id])=>{const v=gc(a);if(v!=null)document.getElementById(id).value=v;});
-  loadPrevDataFromE(); calc();
+
+function gc(addr){
+  if(!wb)return null;
+  const ws=wb.Sheets['振込明細計算'];
+  if(!ws||!ws[addr])return null;
+  return ws[addr].v;
 }
 
-// ── Excel転記 ──
+function loadFromXl(){
+  // 単価のみ振込明細計算シートから取得
+  [['J10','J10'],['J14','J14']].forEach(([a,id])=>{
+    const v=gc(a); if(v!=null)document.getElementById(id).value=v;
+  });
+  loadPrevDataFromE();
+  calc();
+}
+
+// ══════════════════════════════════════════════
+// Excel転記
+// ══════════════════════════════════════════════
 function sc(ws,addr,val){
-  if(!ws)return; if(!ws[addr])ws[addr]={};
+  if(!ws)return;
+  if(!ws[addr])ws[addr]={};
   const c=ws[addr];
   if(val===null||val===undefined||val===''){c.t='z';c.v='';c.w='';return;}
   if(val instanceof Date){
     const d=new Date(val.getFullYear(),val.getMonth(),val.getDate());
-    c.t='d';c.v=d;c.w=d.getFullYear()+'/'+(String(d.getMonth()+1).padStart(2,'0'))+'/'+String(d.getDate()).padStart(2,'0');c.z='yyyy/mm/dd';
+    c.t='d';c.v=d;
+    c.w=d.getFullYear()+'/'+(String(d.getMonth()+1).padStart(2,'0'))+'/'+String(d.getDate()).padStart(2,'0');
+    c.z='yyyy/mm/dd';
   } else if(typeof val==='number'){c.t='n';c.v=val;c.w=String(val);}
   else{c.t='s';c.v=String(val);c.w=String(val);}
 }
 
 function doExport(mode){
   if(!wb){toast('先にExcelファイルを開いてください','err');return;}
-  const ws1=wb.Sheets['振込明細計算'],ws2=wb.Sheets['売上・費用集計'],ws3=wb.Sheets['現金集計'];
-  const kd=s('B3'),ky=s('J3'),kDate=kd?new Date(kd):null;
+  const ws1=wb.Sheets['振込明細計算'];
+  const ws2=wb.Sheets['売上・費用集計'];
+  const ws3=wb.Sheets['現金集計'];
+  const kd=s('B3'), ky=s('J3'), kDate=kd?new Date(kd):null;
 
   if(mode==='sales'){
+    // ── 振込明細計算シートへ転記 ──
     if(ws1){
       if(kDate)sc(ws1,'B6',kDate); if(ky)sc(ws1,'J6',ky);
-      sc(ws1,'B10',2700);sc(ws1,'B11',n('B11')||0);sc(ws1,'B12',4200);
-      sc(ws1,'B14',2900);sc(ws1,'B15',n('B15')||0);sc(ws1,'B16',4400);
-      sc(ws1,'B18',5700);sc(ws1,'B19',n('B19')||0);sc(ws1,'B20',7700);
-      sc(ws1,'B24',n('B24')||0);sc(ws1,'B25',n('B25')||0);
-      sc(ws1,'B28',n('B28')||0);sc(ws1,'B29',n('B29')||0);
-      sc(ws1,'B36',n('B36')||0);sc(ws1,'B38',n('B38')||0);
+      // B列（花材費・未収・預り・現金集計用）
+      sc(ws1,'B10',2700); sc(ws1,'B11',n('B11')||0); sc(ws1,'B12',4200);
+      sc(ws1,'B14',2900); sc(ws1,'B15',n('B15')||0); sc(ws1,'B16',4400);
+      sc(ws1,'B18',5700); sc(ws1,'B19',n('B19')||0); sc(ws1,'B20',7700);
+      sc(ws1,'B24',n('B24')||0); sc(ws1,'B25',n('B25')||0);
+      sc(ws1,'B28',n('B28')||0); sc(ws1,'B29',n('B29')||0);
+      sc(ws1,'B36',n('B36')||0); sc(ws1,'B38',n('B38')||0);
       if(s('B42'))sc(ws1,'B42',new Date(s('B42')+'T00:00:00'));
-      sc(ws1,'B43',n('B43')||0);sc(ws1,'B48',n('B48')||0);sc(ws1,'B49',n('B49')||0);sc(ws1,'B50',n('B50')||0);
-      sc(ws1,'J10',n('J10')||0);sc(ws1,'J11',n('J11')||0);sc(ws1,'J12',3800);
-      sc(ws1,'J14',n('J14')||0);sc(ws1,'J15',n('J15')||0);sc(ws1,'J16',2500);
-      sc(ws1,'J18',n('J18')||0);sc(ws1,'J19',n('J19')||0);sc(ws1,'J20',n('J20')||0);
-      sc(ws1,'J22',n('J22')||0);sc(ws1,'J23',n('J23')||0);sc(ws1,'J24',n('J24')||0);
-      sc(ws1,'J26',n('J26')||0);sc(ws1,'J27',n('J27')||0);sc(ws1,'J28',n('J28')||0);
-      sc(ws1,'J30',n('J30')||0);sc(ws1,'J31',n('J31')||0);sc(ws1,'J32',n('J32')||0);
-      sc(ws1,'J34',n('J34')||0);sc(ws1,'J35',n('J35')||0);sc(ws1,'J36',n('J36')||0);
-      sc(ws1,'J38',n('J38')||0);sc(ws1,'J39',n('J39')||0);sc(ws1,'J40',n('J40')||0);
-      sc(ws1,'J42',n('J42')||0);sc(ws1,'J43',n('J43')||0);sc(ws1,'J44',n('J44')||0);
-      sc(ws1,'J46',n('J46')||0);sc(ws1,'J47',n('J47')||0);sc(ws1,'J48',n('J48')||0);
-      sc(ws1,'J52',n('J52')||0);sc(ws1,'J53',n('J53')||0);sc(ws1,'J54',n('J54')||0);
+      sc(ws1,'B43',n('B43')||0);
+      sc(ws1,'B48',n('B48')||0); sc(ws1,'B49',n('B49')||0); sc(ws1,'B50',n('B50')||0);
+      // J列（資材費）
+      sc(ws1,'J10',n('J10')||0); sc(ws1,'J11',n('J11')||0); sc(ws1,'J12',3800);
+      sc(ws1,'J14',n('J14')||0); sc(ws1,'J15',n('J15')||0); sc(ws1,'J16',2500);
+      sc(ws1,'J18',n('J18')||0); sc(ws1,'J19',n('J19')||0); sc(ws1,'J20',n('J20')||0);
+      sc(ws1,'J22',n('J22')||0); sc(ws1,'J23',n('J23')||0); sc(ws1,'J24',n('J24')||0);
+      sc(ws1,'J26',n('J26')||0); sc(ws1,'J27',n('J27')||0); sc(ws1,'J28',n('J28')||0);
+      sc(ws1,'J30',n('J30')||0); sc(ws1,'J31',n('J31')||0); sc(ws1,'J32',n('J32')||0);
+      sc(ws1,'J34',n('J34')||0); sc(ws1,'J35',n('J35')||0); sc(ws1,'J36',n('J36')||0);
+      sc(ws1,'J38',n('J38')||0); sc(ws1,'J39',n('J39')||0); sc(ws1,'J40',n('J40')||0);
+      sc(ws1,'J42',n('J42')||0); sc(ws1,'J43',n('J43')||0); sc(ws1,'J44',n('J44')||0);
+      sc(ws1,'J46',n('J46')||0); sc(ws1,'J47',n('J47')||0); sc(ws1,'J48',n('J48')||0);
+      sc(ws1,'J52',n('J52')||0); sc(ws1,'J53',n('J53')||0); sc(ws1,'J54',n('J54')||0);
     }
+
+    // ── 売上・費用集計 D列へ転記（C列マッピング完全準拠）──
     if(ws2){
       if(kDate)sc(ws2,'D3',kDate); sc(ws2,'D4',ky||'');
-      sc(ws2,'D5', n('B33')||0);           // 売上合計
+      sc(ws2,'D5', n('B33')||0);           // 売上合計（B33）
       sc(ws2,'D6', n('B34')||0);           // C6='B34' 花材合計
       sc(ws2,'D7', n('B35')||0);           // C7='B35' 資材合計
       sc(ws2,'D8', n('B36')||0);           // C8='B36' 調整金額
-      sc(ws2,'D10',n('B24')||0);           // C10='B24' 売掛金
-      sc(ws2,'D11',n('B25')||0);           // C11='B25' 売掛金返済
-      sc(ws2,'D12',n('B26')||0);           // C12='B26' 売掛金残高
-      sc(ws2,'D13',n('B28')||0);           // C13='B28' 前受金受領
-      sc(ws2,'D14',n('B29')||0);           // C14='B29' 前受金を売上に
-      sc(ws2,'D15',n('B30')||0);           // C15='B30' 預かり金残高
-      sc(ws2,'D17',n('B9') ||0); sc(ws2,'D18',2700); sc(ws2,'D19',n('B11')||0); sc(ws2,'D20',4200);  // C17-20=B9,B10,B11,B12
-      sc(ws2,'D21',n('B13')||0); sc(ws2,'D22',2900); sc(ws2,'D23',n('B15')||0); sc(ws2,'D24',4400);  // C21-24=B13,B14,B15,B16
-      sc(ws2,'D25',n('B17')||0); sc(ws2,'D26',5700); sc(ws2,'D27',n('B19')||0); sc(ws2,'D28',7700);  // C25-28=B17,B18,B19,B20
-      sc(ws2,'D29',n('J9') ||0); sc(ws2,'D30',n('J10')||0); sc(ws2,'D31',n('J11')||0); sc(ws2,'D32',3800);  // C29-32=J9,J10,J11,J12
-      sc(ws2,'D33',n('J13')||0); sc(ws2,'D34',n('J14')||0); sc(ws2,'D35',n('J15')||0); sc(ws2,'D36',2500);  // C33-36=J13,J14,J15,J16
+      sc(ws2,'D10',n('B24')||0);           // C10='B24'
+      sc(ws2,'D11',n('B25')||0);           // C11='B25'
+      sc(ws2,'D12',n('B26')||0);           // C12='B26'
+      sc(ws2,'D13',n('B28')||0);           // C13='B28'
+      sc(ws2,'D14',n('B29')||0);           // C14='B29'
+      sc(ws2,'D15',n('B30')||0);           // C15='B30'
+      sc(ws2,'D17',n('B9') ||0); sc(ws2,'D18',2700); sc(ws2,'D19',n('B11')||0); sc(ws2,'D20',4200); // C17-20=B9,B10,B11,B12
+      sc(ws2,'D21',n('B13')||0); sc(ws2,'D22',2900); sc(ws2,'D23',n('B15')||0); sc(ws2,'D24',4400); // C21-24=B13,B14,B15,B16
+      sc(ws2,'D25',n('B17')||0); sc(ws2,'D26',5700); sc(ws2,'D27',n('B19')||0); sc(ws2,'D28',7700); // C25-28=B17,B18,B19,B20
+      sc(ws2,'D29',n('J9') ||0); sc(ws2,'D30',n('J10')||0); sc(ws2,'D31',n('J11')||0); sc(ws2,'D32',3800); // C29-32=J9,J10,J11,J12
+      sc(ws2,'D33',n('J13')||0); sc(ws2,'D34',n('J14')||0); sc(ws2,'D35',n('J15')||0); sc(ws2,'D36',2500); // C33-36=J13,J14,J15,J16
       sc(ws2,'D37',n('J17')||0); sc(ws2,'D38',n('J18')||0); sc(ws2,'D39',n('J19')||0); sc(ws2,'D40',n('J20')||0); // C37-40=J17-J20
       sc(ws2,'D41',n('J21')||0); sc(ws2,'D42',n('J22')||0); sc(ws2,'D43',n('J23')||0); sc(ws2,'D44',n('J24')||0); // C41-44=J21-J24
       sc(ws2,'D45',n('J25')||0); sc(ws2,'D46',n('J26')||0); sc(ws2,'D47',n('J27')||0); sc(ws2,'D48',n('J28')||0); // C45-48=J25-J28
@@ -862,10 +933,12 @@ function doExport(mode){
       sc(ws2,'D61',n('J41')||0); sc(ws2,'D62',n('J42')||0); sc(ws2,'D63',n('J43')||0); sc(ws2,'D64',n('J44')||0); // C61-64=J41-J44
       sc(ws2,'D65',n('J45')||0); sc(ws2,'D66',n('J46')||0); sc(ws2,'D67',n('J47')||0); sc(ws2,'D68',n('J48')||0); // C65-68=J45-J48
       sc(ws2,'D69',n('J51')||0); sc(ws2,'D70',n('J52')||0); sc(ws2,'D71',n('J53')||0); sc(ws2,'D72',n('J54')||0); sc(ws2,'D73',n('J55')||0); // C69-73=J51-J55
-      sc(ws2,'D88',n('B38')||0);           // C88='B38' 加盟金
+      sc(ws2,'D88',n('B38')||0); // C88='B38'
     }
   }
+
   if(mode==='genkin'){
+    // ── 現金集計 D列へ転記（C列マッピング完全準拠）──
     if(ws3){
       const zd=s('B42'); if(zd)sc(ws3,'D5',new Date(zd+'T00:00:00')); // C5='B42'
       sc(ws3,'D6', n('B43')||0);           // C6='B43'
@@ -878,51 +951,146 @@ function doExport(mode){
       sc(ws3,'D14',n('B51')||0);           // C14='B51'
     }
   }
+
   const fname='2026年_ARIA_売上_経費計算_修正版_'+(kd?kd.replace(/-/g,''):'output')+'.xlsm';
   const nm={sales:'売上集計転記',genkin:'現金集計転記'};
   if(graphToken){
     toast(nm[mode]+'中… OneDriveに保存しています','');
     saveToOneDrive().then(async ok=>{if(ok){toast(nm[mode]+'完了！OneDriveに保存しました ✅','ok');await loadFromOneDrive();}});
-  } else {XLSX.writeFile(wb,fname);toast(nm[mode]+'完了！ダウンロードされました','ok');}
+  } else {
+    XLSX.writeFile(wb,fname);
+    toast(nm[mode]+'完了！ダウンロードされました','ok');
+  }
 }
 
-// ── ドラッグ＆ドロップ ──
+// ══════════════════════════════════════════════
+// ドラッグ＆ドロップ
+// ══════════════════════════════════════════════
 document.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropOv').classList.add('on');});
 document.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.getElementById('dropOv').classList.remove('on');});
 document.addEventListener('drop',e=>{e.preventDefault();document.getElementById('dropOv').classList.remove('on');const f=e.dataTransfer.files[0];if(f)loadXl(f);});
 
-// ── トースト ──
+// ══════════════════════════════════════════════
+// トースト
+// ══════════════════════════════════════════════
 let _tt=null;
 function toast(msg,type=''){const e=document.getElementById('toast');e.textContent=msg;e.className='on '+(type||'');if(_tt)clearTimeout(_tt);_tt=setTimeout(()=>e.className='',3500);}
 
-// ── 設定 ──
-function showSettings(){document.getElementById('cfgClientId').value=localStorage.getItem('aria_cid')||'';document.getElementById('cfgPath').value=localStorage.getItem('aria_path')||"/まさみFolder/お花関係Folder/まさみ'ｓ 特別File/お花関係/ARIA/2026年_ARIA_売上_経費計算_修正版.xlsm";document.getElementById('settingsPanel').style.display='flex';}
+// ══════════════════════════════════════════════
+// 設定パネル
+// ══════════════════════════════════════════════
+function showSettings(){
+  document.getElementById('cfgClientId').value=localStorage.getItem('aria_cid')||'';
+  document.getElementById('cfgPath').value=localStorage.getItem('aria_path')||"/まさみFolder/お花関係Folder/まさみ'ｓ 特別File/お花関係/ARIA/2026年_ARIA_売上_経費計算_修正版.xlsm";
+  document.getElementById('settingsPanel').style.display='flex';
+}
 function closeSettings(){document.getElementById('settingsPanel').style.display='none';}
-function saveSettings(){const cid=document.getElementById('cfgClientId').value.trim();const path=document.getElementById('cfgPath').value.trim();if(!cid){alert('Client IDを入力してください');return;}localStorage.setItem('aria_cid',cid);localStorage.setItem('aria_path',path);closeSettings();toast('設定を保存しました。ログインします…','ok');setTimeout(()=>initMsal(cid),500);}
+function saveSettings(){
+  const cid=document.getElementById('cfgClientId').value.trim();
+  const path=document.getElementById('cfgPath').value.trim();
+  if(!cid){alert('Client IDを入力してください');return;}
+  localStorage.setItem('aria_cid',cid); localStorage.setItem('aria_path',path);
+  closeSettings(); toast('設定を保存しました。ログインします…','ok');
+  setTimeout(()=>initMsal(cid),500);
+}
 function loadSettings(){try{const cid=localStorage.getItem('aria_cid');if(cid)setTimeout(()=>initMsal(cid,true),800);}catch(e){}}
 
-// ── MSAL ──
-let msalApp=null,graphToken=null;
-async function handleMsLogin(){const cid=localStorage.getItem('aria_cid');if(!cid){toast('まず⚙️ボタンからClient IDを設定してください','err');showSettings();return;}initMsal(cid,false);}
+// ══════════════════════════════════════════════
+// Microsoft Graph API / MSAL
+// ══════════════════════════════════════════════
+let msalApp=null, graphToken=null;
+
+async function handleMsLogin(){
+  const cid=localStorage.getItem('aria_cid');
+  if(!cid){toast('まず⚙️ボタンからClient IDを設定してください','err');showSettings();return;}
+  initMsal(cid,false);
+}
+
 async function initMsal(cid,silent=false){
   try{
-    msalApp=new msal.PublicClientApplication({auth:{clientId:cid,authority:'https://login.microsoftonline.com/organizations',redirectUri:'https://cestino777.github.io/ARIA-system/'},cache:{cacheLocation:'localStorage',storeAuthStateInCookie:true}});
+    msalApp=new msal.PublicClientApplication({
+      auth:{clientId:cid,authority:'https://login.microsoftonline.com/organizations',redirectUri:'https://cestino777.github.io/ARIA-system/'},
+      cache:{cacheLocation:'localStorage',storeAuthStateInCookie:true}
+    });
     await msalApp.initialize();
     const accounts=msalApp.getAllAccounts();
-    if(accounts.length>0){try{const res=await msalApp.acquireTokenSilent({scopes:['Files.ReadWrite','User.Read'],account:accounts[0]});graphToken=res.accessToken;updateLoginUI(accounts[0]);toast('自動ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');await loadFromOneDrive();return;}catch(e){}}
+    if(accounts.length>0){
+      try{
+        const res=await msalApp.acquireTokenSilent({scopes:['Files.ReadWrite','User.Read'],account:accounts[0]});
+        graphToken=res.accessToken; updateLoginUI(accounts[0]);
+        toast('自動ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');
+        await loadFromOneDrive(); return;
+      }catch(e){}
+    }
     if(silent)return;
     toast('Microsoftにログインしてください…','');
     const res=await msalApp.loginPopup({scopes:['Files.ReadWrite','User.Read']});
     const tokenRes=await msalApp.acquireTokenSilent({scopes:['Files.ReadWrite','User.Read'],account:res.account});
-    graphToken=tokenRes.accessToken;updateLoginUI(res.account);toast('ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');await loadFromOneDrive();
+    graphToken=tokenRes.accessToken; updateLoginUI(res.account);
+    toast('ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');
+    await loadFromOneDrive();
   }catch(e){console.log('ログインエラー:',e.message);}
 }
-function updateLoginUI(account){document.getElementById('loginDot').style.background='#70AD47';document.getElementById('loginStatusText').textContent='✅ '+account.username;document.getElementById('msBtnText').textContent='ログアウト';document.getElementById('msBtn').onclick=doLogout;document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#333;';document.getElementById('xlFileLabel').style.display='none';document.getElementById('fileLabel').textContent='';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);}
-function doLogout(){if(msalApp)msalApp.logoutPopup();graphToken=null;document.getElementById('loginDot').style.background='#ff6b6b';document.getElementById('loginStatusText').textContent='未接続';document.getElementById('msBtnText').textContent='Microsoftでログイン';document.getElementById('msBtn').onclick=handleMsLogin;document.getElementById('msBtn').style.cssText='background:#fff;color:#4472C4;';document.getElementById('xlFileLabel').style.display='';document.getElementById('fileLabel').textContent='（ファイル未選択）';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);}
-async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true});loadFromXl();toast('OneDriveからデータを読み込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
-async function saveToOneDrive(){if(!graphToken)return false;const path=localStorage.getItem('aria_path');if(!path)return false;try{const wbout=XLSX.write(wb,{bookType:'xlsm',type:'array'});const blob=new Blob([wbout],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+graphToken,'Content-Type':'application/vnd.ms-excel.sheet.macroEnabled.12'},body:blob});if(!res.ok)throw new Error('書き込みエラー: '+res.status);return true;}catch(e){toast('OneDrive書き込みエラー：'+e.message,'err');return false;}}
 
-window.onload=()=>{document.getElementById('B3').value=new Date().toISOString().split('T')[0];loadSettings();calc();if(window.msal&&msalApp){const a=msalApp.getAllAccounts();if(a.length>0)updateLoginUI(a[0]);}};
+function updateLoginUI(account){
+  document.getElementById('loginDot').style.background='#70AD47';
+  document.getElementById('loginStatusText').textContent='✅ '+account.username;
+  document.getElementById('msBtnText').textContent='ログアウト';
+  document.getElementById('msBtn').onclick=doLogout;
+  document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#333;';
+  document.getElementById('xlFileLabel').style.display='none';
+  document.getElementById('fileLabel').textContent='';
+  ['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);
+}
+function doLogout(){
+  if(msalApp)msalApp.logoutPopup();
+  graphToken=null;
+  document.getElementById('loginDot').style.background='#ff6b6b';
+  document.getElementById('loginStatusText').textContent='未接続';
+  document.getElementById('msBtnText').textContent='Microsoftでログイン';
+  document.getElementById('msBtn').onclick=handleMsLogin;
+  document.getElementById('msBtn').style.cssText='background:#fff;color:#4472C4;';
+  document.getElementById('xlFileLabel').style.display='';
+  document.getElementById('fileLabel').textContent='（ファイル未選択）';
+  ['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);
+}
+
+async function loadFromOneDrive(){
+  if(!graphToken)return;
+  const path=localStorage.getItem('aria_path'); if(!path)return;
+  try{
+    toast('OneDriveからデータを読み込み中…','');
+    const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;
+    const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});
+    if(!res.ok)throw new Error('読み込みエラー: '+res.status);
+    wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true});
+    loadFromXl();
+    toast('OneDriveからデータを読み込みました','ok');
+  }catch(e){toast('読み込みエラー：'+e.message,'err');}
+}
+
+async function saveToOneDrive(){
+  if(!graphToken)return false;
+  const path=localStorage.getItem('aria_path'); if(!path)return false;
+  try{
+    const wbout=XLSX.write(wb,{bookType:'xlsm',type:'array'});
+    const blob=new Blob([wbout],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});
+    const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;
+    const res=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+graphToken,'Content-Type':'application/vnd.ms-excel.sheet.macroEnabled.12'},body:blob});
+    if(!res.ok)throw new Error('書き込みエラー: '+res.status);
+    return true;
+  }catch(e){toast('OneDrive書き込みエラー：'+e.message,'err');return false;}
+}
+
+// ══════════════════════════════════════════════
+// 初期化
+// ══════════════════════════════════════════════
+window.onload=()=>{
+  document.getElementById('B3').value=new Date().toISOString().split('T')[0];
+  loadSettings();
+  calc();
+  if(window.msal&&msalApp){const a=msalApp.getAllAccounts();if(a.length>0)updateLoginUI(a[0]);}
+};
 </script>
 </body>
 </html>
