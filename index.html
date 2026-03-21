@@ -67,7 +67,7 @@ td.bb2 { border-bottom: 2px solid #595959; }
 
 /* 色クラス */
 td.or { color: #C55A11; }
-td.gn { color: #375623; }
+td.gn { color: #1E3A0F; }  /* 濃い緑 */
 td.bl2 { color: #0000FF; font-weight: bold; }
 td.rd { color: #C00000; }
 td.gy { color: #666; font-size: 9.5pt; }
@@ -81,7 +81,7 @@ select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
 /* 読み取り専用（計算結果・固定値） */
 .ro { width:100%; height:18px; border:none; outline:none; background:transparent; font-family:inherit; font-size:10.5pt; padding:0 3px; cursor:default; pointer-events:none; text-align:right; }
 .ro.or { color:#C55A11; font-weight:bold; }
-.ro.gn { color:#375623; font-weight:bold; }
+.ro.gn { color:#1E3A0F; font-weight:bold; }
 .ro.bl { color:#1F3864; font-weight:bold; }
 .ro.b2 { color:#0000FF; font-weight:bold; }
 .ro.rd { color:#C00000; font-weight:bold; }
@@ -357,7 +357,7 @@ select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
 <tr>
   <td class="c rd bl" style="border-bottom:2px solid #595959;">未収入金残高</td>
   <td style="border-bottom:2px solid #595959;"><input type="number" id="B26" class="ro rd"></td>
-  <td class="un" style="border-bottom:2px solid #595959;">円</td>
+  <td class="un" style="border-bottom:2px solid #595959; border-left:none;">円</td>
   <td class="sp" colspan="5"></td>
   <td class="r">支払い単価</td>
   <td><input type="number" id="J26" class="inp" placeholder="0" oninput="calc()"></td>
@@ -365,9 +365,9 @@ select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
 </tr>
 <!-- 行27: A27=前回預り金　残(B27=売上・費用集計!E15) / I27=人数 J27=入力 -->
 <tr>
-  <td class="c" style="border-top:2px solid #595959;">前回預り金　残</td>
-  <td style="border-top:2px solid #595959;"><input type="number" id="B27" class="ro bk"></td>
-  <td class="un" style="border-top:2px solid #595959;">円</td>
+  <td class="c">前回預り金　残</td>
+  <td><input type="number" id="B27" class="ro bk"></td>
+  <td class="un">円</td>
   <td class="sp" colspan="5"></td>
   <td class="r">人数</td>
   <td><input type="number" id="J27" class="inp" min="0" placeholder="0" oninput="calc()"></td>
@@ -726,8 +726,7 @@ function clearForm(silent=false){
   }
   if(!silent&&!confirm('売上・費用集計と現金集計のD列前に列挿入してデータを右シフトし、HTMLをクリアします。よろしいですか？'))return;
 
-  // D列前に列挿入（現在のD列データがE列にずれる）
-  // シート名を確認してからシフト
+  // ① D列前に列挿入（現在のD列データがE列にずれる）
   const sheetNames=wb.SheetNames;
   console.log('シート一覧:', sheetNames);
   const ws_sales=wb.Sheets['売上・費用集計'];
@@ -737,10 +736,11 @@ function clearForm(silent=false){
   insertColumnBeforeD(ws_sales);
   insertColumnBeforeD(ws_genkin);
 
-  // シフト後のE列（旧D列）から前回データを読み込んでHTMLに反映
-  // ※シフト直後のwbのE列 = シフト前のD列（最新データ）
-  loadPrevDataFromE();
+  // ② 入力欄をクリア（単価デフォルト値は保持）
   _clearInputs();
+
+  // ③ シフト後のメモリ上のE列（=旧D列=今回データ）から前回値をHTMLに反映
+  loadPrevDataFromE();
   calc();
 
   if(graphToken){
@@ -748,11 +748,15 @@ function clearForm(silent=false){
     saveToOneDrive().then(async ok=>{
       if(ok){
         toast('列シフト完了！OneDriveに保存しました ✅','ok');
-        // 保存完了後にwbを最新状態に再読み込み
+        // ④ 保存完了後、OneDriveから最新ファイルを再読み込み
+        //    loadFromOneDrive()→loadFromXl()→loadPrevDataFromE() の順で
+        //    E列（=今回シフトした旧D列）のデータが画面に再反映される
         await loadFromOneDrive();
       }
     });
   } else {
+    // ローカルファイルの場合：ダウンロードのみ（再読み込みなし）
+    // シフト済みのE列データはメモリ上のwbから既に③で反映済み
     XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm');
     toast('列シフト完了！ダウンロードされました','ok');
   }
