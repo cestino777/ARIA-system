@@ -182,26 +182,6 @@ select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
     <option value="">選択</option><option>W葉山</option><option>W国際村</option><option>その他</option>
   </select></td>
 </tr>
-<!-- 行4: B4=サブタイトル -->
-<tr>
-  <td class="nb"></td>
-  <td colspan="2" class="nb" style="font-size:8.5pt;color:#999;padding:1px 4px;">＜＜売上・振込み明細計算＞＞</td>
-  <td class="sp" colspan="5"></td><td colspan="3" class="nb"></td>
-</tr>
-<!-- 行5: 空白 -->
-<tr style="height:3px;"><td class="sp" colspan="11"></td></tr>
-
-<!-- 行6: A6=講座日（実データ表示用） / I6=教室名；（表示） -->
-<tr>
-  <td class="r bl">講座日</td>
-  <td><input type="text" id="B6d" class="ro bk" style="text-align:left;font-size:9pt;"></td>
-  <td class="nb" style="padding-left:2px;">（</td>
-  <td class="sp"></td>
-  <td id="D6w" colspan="2" class="nb" style="font-weight:bold;text-align:center;font-size:9pt;"></td>
-  <td class="sp" colspan="2"></td>
-  <td class="gy r">教室名；</td>
-  <td id="J6d" colspan="2" style="font-weight:bold;padding-left:4px;border:1px solid #d0d0d0;"></td>
-</tr>
 <!-- 行7: 空白 -->
 <tr style="height:3px;"><td class="sp" colspan="11"></td></tr>
 
@@ -375,9 +355,9 @@ select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
 </tr>
 <!-- 行26: A26=未収入金残高(B26=B25-B24) / I26=支払い単価 J26=入力 -->
 <tr>
-  <td class="c rd bl">未収入金残高</td>
-  <td><input type="number" id="B26" class="ro rd"></td>
-  <td class="un">円</td>
+  <td class="c rd bl" style="border-bottom:2px solid #595959;">未収入金残高</td>
+  <td style="border-bottom:2px solid #595959;"><input type="number" id="B26" class="ro rd"></td>
+  <td class="un" style="border-bottom:2px solid #595959;">円</td>
   <td class="sp" colspan="5"></td>
   <td class="r">支払い単価</td>
   <td><input type="number" id="J26" class="inp" placeholder="0" oninput="calc()"></td>
@@ -385,9 +365,9 @@ select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
 </tr>
 <!-- 行27: A27=前回預り金　残(B27=売上・費用集計!E15) / I27=人数 J27=入力 -->
 <tr>
-  <td class="c">前回預り金　残</td>
-  <td><input type="number" id="B27" class="ro bk"></td>
-  <td class="un">円</td>
+  <td class="c" style="border-top:2px solid #595959;">前回預り金　残</td>
+  <td style="border-top:2px solid #595959;"><input type="number" id="B27" class="ro bk"></td>
+  <td class="un" style="border-top:2px solid #595959;">円</td>
   <td class="sp" colspan="5"></td>
   <td class="r">人数</td>
   <td><input type="number" id="J27" class="inp" min="0" placeholder="0" oninput="calc()"></td>
@@ -643,7 +623,7 @@ select.inp { background:#CCFFCC; cursor:pointer; height:19px; }
 <tr>
   <td colspan="3" class="nb"></td>
   <td class="sp" colspan="5"></td>
-  <td class="gn" style="font-size:9.5pt;">自家消費金額(売上）</td>
+  <td class="gn bl" style="font-size:9.5pt;">自家消費金額(売上）</td>
   <td><input type="number" id="J55" class="ro gn"></td>
   <td class="un">円</td>
 </tr>
@@ -673,9 +653,6 @@ function calc(){
   const yArr=['日','月','火','水','木','金','土'];
   const youbi=kd?yArr[new Date(kd).getDay()]+'曜':'';
   document.getElementById('D3w').textContent=youbi;
-  document.getElementById('B6d').value=kd?new Date(kd).toLocaleDateString('ja-JP'):'';
-  document.getElementById('D6w').textContent=youbi;
-  document.getElementById('J6d').textContent=s('J3');
   // B44=B6（日付）
   document.getElementById('B44').value=kd?new Date(kd).toLocaleDateString('ja-JP'):'';
 
@@ -748,16 +725,37 @@ function clearForm(silent=false){
     _clearInputs(); calc(); toast('入力をクリアしました','ok'); return;
   }
   if(!silent&&!confirm('売上・費用集計と現金集計のD列前に列挿入してデータを右シフトし、HTMLをクリアします。よろしいですか？'))return;
-  insertColumnBeforeD(wb.Sheets['売上・費用集計']);
-  insertColumnBeforeD(wb.Sheets['現金集計']);
+
+  // D列前に列挿入（現在のD列データがE列にずれる）
+  // シート名を確認してからシフト
+  const sheetNames=wb.SheetNames;
+  console.log('シート一覧:', sheetNames);
+  const ws_sales=wb.Sheets['売上・費用集計'];
+  const ws_genkin=wb.Sheets['現金集計'];
+  if(!ws_sales) console.warn('売上・費用集計 シートが見つかりません');
+  if(!ws_genkin) console.warn('現金集計 シートが見つかりません');
+  insertColumnBeforeD(ws_sales);
+  insertColumnBeforeD(ws_genkin);
+
+  // シフト後のE列（旧D列）から前回データを読み込んでHTMLに反映
+  // ※シフト直後のwbのE列 = シフト前のD列（最新データ）
+  loadPrevDataFromE();
+  _clearInputs();
+  calc();
+
   if(graphToken){
     toast('列シフト中… OneDriveに保存しています','');
-    saveToOneDrive().then(ok=>{if(ok)toast('列シフト完了！OneDriveに保存しました ✅','ok');});
+    saveToOneDrive().then(async ok=>{
+      if(ok){
+        toast('列シフト完了！OneDriveに保存しました ✅','ok');
+        // 保存完了後にwbを最新状態に再読み込み
+        await loadFromOneDrive();
+      }
+    });
   } else {
     XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm');
     toast('列シフト完了！ダウンロードされました','ok');
   }
-  loadPrevDataFromE(); _clearInputs(); calc();
 }
 
 function _clearInputs(){
@@ -772,52 +770,115 @@ function _clearInputs(){
 }
 
 function insertColumnBeforeD(ws){
-  if(!ws)return;
-  const ref=ws['!ref']; if(!ref)return;
+  if(!ws){ console.warn('insertColumnBeforeD: ws is null'); return; }
+  const ref=ws['!ref'];
+  if(!ref){ console.warn('insertColumnBeforeD: !ref is missing'); return; }
   const range=XLSX.utils.decode_range(ref);
   const moves={};
-  for(let R=range.s.r;R<=range.e.r;R++)
+  // C列(index=2)の右、D列(index=3)以降を1列右にずらす
+  for(let R=range.s.r;R<=range.e.r;R++){
     for(let C=range.e.c;C>=3;C--){
       const from=XLSX.utils.encode_cell({r:R,c:C});
-      if(ws[from]){moves[XLSX.utils.encode_cell({r:R,c:C+1})]=JSON.parse(JSON.stringify(ws[from]));delete ws[from];}
+      if(ws[from]){
+        const to=XLSX.utils.encode_cell({r:R,c:C+1});
+        moves[to]=JSON.parse(JSON.stringify(ws[from]));
+        delete ws[from];
+      }
     }
+  }
   Object.keys(moves).forEach(a=>{ws[a]=moves[a];});
-  range.e.c+=1; ws['!ref']=XLSX.utils.encode_range(range);
+  range.e.c+=1;
+  ws['!ref']=XLSX.utils.encode_range(range);
+  console.log('列シフト完了:', ws['!ref'], 'E7:', ws['E7'], 'E12:', ws['E12'], 'E14:', ws['E14'], 'E15:', ws['E15']);
 }
 
 // ══════════════════════════════════════════════
 // Excel前回データ読込（open時・列シフト後）
 // ══════════════════════════════════════════════
-function xlDateToStr(v){
-  if(v===null||v===undefined)return null;
-  let d;
-  if(v instanceof Date)d=v;
-  else if(typeof v==='number')d=new Date(Math.round((v-25569)*86400*1000));
-  else if(typeof v==='string')d=new Date(v);
-  else return null;
-  if(isNaN(d.getTime()))return null;
-  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+function xlDateToStr(cellObj){
+  // cellObjはセルオブジェクト全体を受け取る（型情報も使う）
+  if(!cellObj || cellObj.v===undefined) return null;
+  const v = cellObj.v;
+  const t = cellObj.t; // 'n'=数値, 'd'=日付, 's'=文字列
+
+  let year, month, day;
+
+  if(t==='d' && v instanceof Date){
+    // Date型として読まれた場合
+    year  = v.getFullYear();
+    month = v.getMonth()+1;
+    day   = v.getDate();
+  } else if(t==='n' || typeof v==='number'){
+    // Excelシリアル値（数値型）→ 日付変換
+    // Excelの基準: 1900/1/1=1（ただしExcelは1900/2/29をバグで存在するとカウントするため-1）
+    const serial = Math.floor(v);
+    // serial → JS Date（UTC基準でズレを防ぐ）
+    const msPerDay = 86400000;
+    // Excelシリアル値1 = 1900/1/1、Unixエポック(1970/1/1)は25569
+    const d = new Date((serial - 25569) * msPerDay);
+    year  = d.getUTCFullYear();
+    month = d.getUTCMonth()+1;
+    day   = d.getUTCDate();
+  } else if(t==='s' && typeof v==='string'){
+    // 文字列型の場合はそのまま parse
+    const d = new Date(v);
+    if(isNaN(d.getTime())) return null;
+    year  = d.getFullYear();
+    month = d.getMonth()+1;
+    day   = d.getDate();
+  } else {
+    return null;
+  }
+
+  if(!year || year < 1900) return null;
+  return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
 }
 
 function loadPrevDataFromE(){
-  // B23=売上・費用集計!E12（前回未収金残）
-  // B27=売上・費用集計!E15（前回預り金残）
-  // B42=現金集計!E7（前回入出金日）
-  // B43=現金集計!E14（残高）
-  if(!wb)return;
-  const ws2=wb.Sheets['売上・費用集計'];
-  const ws3=wb.Sheets['現金集計'];
+  // ファイルopen時: E列 = 前回データ
+  // clearForm後: insertColumnBeforeD直後なので旧D列がE列に移動済み
+  if(!wb) return;
+  const ws2 = wb.Sheets['売上・費用集計'];
+  const ws3 = wb.Sheets['現金集計'];
+
   if(ws3){
-    const e7=ws3['E7'];
-    if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7.v);if(ds)document.getElementById('B42').value=ds;}
-    const e14=ws3['E14'];
-    if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
+    // 現金集計 E7 → 前回入出金日 → B42
+    const e7 = ws3['E7'];
+    console.log('現金集計 E7 生データ:', JSON.stringify(e7));
+    if(e7 && e7.v !== undefined){
+      const ds = xlDateToStr(e7);
+      console.log('E7 変換結果:', ds);
+      if(ds){
+        document.getElementById('B42').value = ds;
+        console.log('B42 にセット完了:', ds);
+      }
+    }
+
+    // 現金集計 E14 → 前回手持ち額（残高） → B43
+    const e14 = ws3['E14'];
+    console.log('現金集計 E14 生データ:', JSON.stringify(e14));
+    if(e14 && e14.v !== undefined){
+      document.getElementById('B43').value = e14.v;
+      console.log('B43 にセット完了:', e14.v);
+    }
   }
+
   if(ws2){
-    const e12=ws2['E12'];
-    if(e12&&e12.v!==undefined)document.getElementById('B23').value=e12.v;
-    const e15=ws2['E15'];
-    if(e15&&e15.v!==undefined)document.getElementById('B27').value=e15.v;
+    // 売上・費用集計 E12 → 前回未収金残 → B23
+    const e12 = ws2['E12'];
+    console.log('売上費用集計 E12 生データ:', JSON.stringify(e12));
+    if(e12 && e12.v !== undefined){
+      document.getElementById('B23').value = e12.v;
+      console.log('B23 にセット完了:', e12.v);
+    }
+
+    // 売上・費用集計 E15 → 前回預り金残 → B27
+    const e15 = ws2['E15'];
+    console.log('売上費用集計 E15 生データ:', JSON.stringify(e15));
+    if(e15 && e15.v !== undefined){
+      document.getElementById('B27').value = e15.v;
+      console.log('B27 にセット完了:', e15.v);
+    }
   }
 }
 
