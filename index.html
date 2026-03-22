@@ -272,7 +272,7 @@ function clearForm(silent=false){
   _clearInputs(); loadPrevDataFromE(); calc();
   restoreSheets(wb);
   applyStyles(wb);
-  if(graphToken){toast('列シフト中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){toast('画面Clear ＆ Excel 列移動 完了','ok');await loadFromOneDrive();}});}
+  if(graphToken){toast('列シフト中… OneDriveに保存しています','');saveToOneDrive().then(ok=>{if(ok){toast('画面Clear ＆ Excel 列移動 完了','ok');}});}
   else{XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm',{bookType:'xlsm',bookVBA:true});toast('画面Clear ＆ Excel 列移動 完了','ok');}
 }
 
@@ -498,7 +498,7 @@ function doExport(mode){
 
   const fname='2026年_ARIA_売上_経費計算_修正版_'+(kd?kd.replace(/-/g,''):'output')+'.xlsm';
   const nm={sales:'売上集計転記',genkin:'現金集計転記'};
-  if(graphToken){toast(nm[mode]+'中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){if(mode==='sales')_salesDone=true;else _genkinDone=true;checkFinalBtn();toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');await loadFromOneDrive();}});}
+  if(graphToken){toast(nm[mode]+'中… OneDriveに保存しています','');saveToOneDrive().then(ok=>{if(ok){if(mode==='sales')_salesDone=true;else _genkinDone=true;checkFinalBtn();toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');}});}
   else{XLSX.writeFile(wb,fname,{bookType:'xlsm',bookVBA:true});if(mode==='sales')_salesDone=true;else _genkinDone=true;checkFinalBtn();toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');}
 }
 
