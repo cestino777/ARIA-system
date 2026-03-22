@@ -273,16 +273,25 @@ function clearForm(silent=false){
   document.getElementById('bClear').disabled=true;
   insertColumnBeforeD(wb.Sheets['売上・費用集計']);
   insertColumnBeforeD(wb.Sheets['現金集計']);
-  _clearInputs(); loadPrevDataFromE(); calc();
+  // E列とF列を比較して同じなら削除（二重データ防止）
+  compareAndCleanColumns(wb.Sheets['売上・費用集計'], 3);  // 行3：開講日で比較
+  compareAndCleanColumns(wb.Sheets['現金集計'], 7);        // 行7：日付で比較
   restoreSheets(wb);
   applyStyles(wb);
   if(graphToken){
     toast('列シフト中… OneDriveに保存しています','');
-    saveToOneDrive().then(ok=>{
-      if(ok) toast('画面Clear ＆ Excel 列移動 完了','ok');
+    saveToOneDrive().then(async ok=>{
+      if(ok){
+        toast('画面Clear ＆ Excel 列移動 完了','ok');
+        // 保存完了後にOneDriveから読み直して正確な4つのデータを取得
+        await loadFromOneDrive();
+        _clearInputs();
+        calc();
+      }
     });
   } else {
     XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm',{bookType:'xlsm',bookVBA:true});
+    _clearInputs(); loadPrevDataFromE(); calc();
     toast('画面Clear ＆ Excel 列移動 完了','ok');
   }
 }
@@ -291,6 +300,52 @@ function _clearInputs(){
   const keep=[];
   document.querySelectorAll('input.inp,input.inp-ph').forEach(e=>{if(keep.includes(e.id))return;if(e.type==='date')e.value='';else if(e.tagName==='SELECT')e.value='';else e.value='';});
   document.getElementById('B3').value=new Date().toISOString().split('T')[0];
+}
+
+// E列とF列を比較して同じならF列を削除
+function compareAndCleanColumns(ws, keyRow){
+  if(!ws) return;
+  const eKey = ws[XLSX.utils.encode_cell({r:keyRow-1, c:4})]; // E列
+  const fKey = ws[XLSX.utils.encode_cell({r:keyRow-1, c:5})]; // F列
+  if(!eKey || !fKey) return;
+
+  // 日付値を文字列に変換して比較
+  function toDateStr(cell){
+    if(!cell||cell.v===undefined) return '';
+    const v = cell.v;
+    if(typeof v === 'number'){
+      const d = new Date((Math.floor(v)-25569)*86400000);
+      return d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)+'-'+d.getUTCDate();
+    }
+    if(v instanceof Date) return v.getFullYear()+'-'+(v.getMonth()+1)+'-'+v.getDate();
+    return String(v);
+  }
+
+  const eVal = toDateStr(eKey);
+  const fVal = toDateStr(fKey);
+  console.log('E列キー:', eVal, 'F列キー:', fVal);
+
+  if(eVal === fVal && eVal !== ''){
+    console.log('E=F：F列を削除して詰める');
+    // F列(index=5)以降を左に1列シフト
+    const ref = ws['!ref'];
+    if(!ref) return;
+    const range = XLSX.utils.decode_range(ref);
+    const moves = {};
+    for(let R=range.s.r; R<=range.e.r; R++){
+      for(let C=5; C<=range.e.c; C++){
+        const from = XLSX.utils.encode_cell({r:R, c:C});
+        if(ws[from]){
+          moves[XLSX.utils.encode_cell({r:R, c:C-1})] = JSON.parse(JSON.stringify(ws[from]));
+          delete ws[from];
+        }
+      }
+    }
+    Object.keys(moves).forEach(a=>{ ws[a]=moves[a]; });
+    range.e.c -= 1;
+    ws['!ref'] = XLSX.utils.encode_range(range);
+    toast('二重データを検出・修正しました','ok');
+  }
 }
 
 function insertColumnBeforeD(ws){
