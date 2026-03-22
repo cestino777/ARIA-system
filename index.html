@@ -151,24 +151,24 @@ td.or{color:#b84400;}td.gn{color:#1a4a08;}td.b2{color:#0000CC;font-weight:bold;}
 <tr><td class="r">受取単価</td><td class="fv">4,200</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td class="fv">3,800</td><td class="un">円</td></tr>
 
 <!-- 行13〜16: プリザーブドP / テキスト代 -->
-<tr><td class="or bl">プリザーブド・P　計</td><td class="calc"><div class="ro-or" id="B13"></div></td><td class="un calc">円</td><td class="sp" colspan="5"></td><td class="or grp bl">テキスト代</td><td class="grp"><div class="ro-or" id="J13"></div></td><td class="un grp">円</td></tr>
+<tr><td class="or grp bl">プリザーブド・P　計</td><td class="calc grp"><div class="ro-or" id="B13"></div></td><td class="un calc grp">円</td><td class="sp" colspan="5"></td><td class="or grp bl">テキスト代</td><td class="grp"><div class="ro-or" id="J13"></div></td><td class="un grp">円</td></tr>
 <tr><td class="r">支払い単価</td><td class="fv">2,900</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td class="fv">2,000</td><td class="un">円</td></tr>
 <tr><td class="r">人数</td><td><input type="number" id="B15" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td><td class="sp" colspan="5"></td><td class="r">人数</td><td><input type="number" id="J15" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td></tr>
 <tr><td class="r">受取単価</td><td class="fv">4,400</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td class="fv">2,500</td><td class="un">円</td></tr>
 
 <!-- 行17〜20: プリザーブドC / 追加項目0 -->
-<tr><td class="or bl">プリザーブド・C 計</td><td class="calc"><div class="ro-or" id="B17"></div></td><td class="un calc">円</td><td class="sp" colspan="5"></td><td class="nm grp"><input type="text" id="I17" class="inp-ph" placeholder="（任意の項目名）"></td><td class="grp"><div class="ro-or" id="J17"></div></td><td class="un grp">円</td></tr>
+<tr><td class="or grp bl">プリザーブド・C 計</td><td class="calc grp"><div class="ro-or" id="B17"></div></td><td class="un calc grp">円</td><td class="sp" colspan="5"></td><td class="nm grp"><input type="text" id="I17" class="inp-ph" placeholder="（任意の項目名）"></td><td class="grp"><div class="ro-or" id="J17"></div></td><td class="un grp">円</td></tr>
 <tr><td class="r">支払い単価</td><td class="fv">5,700</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td><input type="number" id="J18" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
 <tr><td class="r">人数</td><td><input type="number" id="B19" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td><td class="sp" colspan="5"></td><td class="r">人数</td><td><input type="number" id="J19" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td></tr>
 <tr><td class="r">受取単価</td><td class="fv">7,700</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td><input type="number" id="J20" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
 
 <!-- 未収入金ヘッダ / 追加項目1 -->
-<tr><td class="sh" colspan="3">💴 未収入金・預り金 集計</td><td class="sp" colspan="5"></td><td class="nm grp"><input type="text" id="I21" class="inp-ph" placeholder="（任意の項目名）"></td><td class="grp"><div class="ro-or" id="J21"></div></td><td class="un grp">円</td></tr>
-<tr><td class="c">前回未収金　残</td><td class="calc"><div class="ro-bk" id="B23"></div></td><td class="un calc">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td><input type="number" id="J22" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
-<tr><td class="c rd">今回 未収入金=&gt;売上</td><td><input type="number" id="B24" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">人数</td><td><input type="number" id="J23" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td></tr>
-<tr><td class="c">今回 未収入金受取</td><td><input type="number" id="B25" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td><input type="number" id="J24" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
+<tr><td class="sh" colspan="3">💴 未受取金・預り金　集計</td><td class="sp" colspan="5"></td><td class="nm grp"><input type="text" id="I21" class="inp-ph" placeholder="（任意の項目名）"></td><td class="grp"><div class="ro-or" id="J21"></div></td><td class="un grp">円</td></tr>
+<tr><td class="c">前回  未受取金  残</td><td class="calc"><div class="ro-bk" id="B23"></div></td><td class="un calc">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td><input type="number" id="J22" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
+<tr><td class="c rd">今回の未受取金（売上計上）</td><td><input type="number" id="B24" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">人数</td><td><input type="number" id="J23" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td></tr>
+<tr><td class="c">未受取分の返済</td><td><input type="number" id="B25" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td><input type="number" id="J24" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
 <!-- 未収入金残高 細区切り -->
-<tr><td class="c rd bl db">未収入金残高</td><td class="calc db"><div class="ro-rd" id="B26"></div></td><td class="un calc db">円</td><td class="sp" colspan="5"></td><td class="nm grp"><input type="text" id="I25" class="inp-ph" placeholder="（任意の項目名）"></td><td class="grp"><div class="ro-or" id="J25"></div></td><td class="un grp">円</td></tr>
+<tr><td class="c rd bl db">未受取金残高</td><td class="calc db"><div class="ro-rd" id="B26"></div></td><td class="un calc db">円</td><td class="sp" colspan="5"></td><td class="nm grp"><input type="text" id="I25" class="inp-ph" placeholder="（任意の項目名）"></td><td class="grp"><div class="ro-or" id="J25"></div></td><td class="un grp">円</td></tr>
 <tr><td class="c dt">前回預り金　残</td><td class="calc dt"><div class="ro-bk" id="B27"></div></td><td class="un calc dt">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td><input type="number" id="J26" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
 <tr><td class="c">今回 預り余剰金</td><td><input type="number" id="B28" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">人数</td><td><input type="number" id="J27" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td></tr>
 <tr><td class="c">以前 預り金=&gt;売上</td><td><input type="number" id="B29" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td><input type="number" id="J28" class="inp" placeholder="0" oninput="calc()"></td><td class="un">円</td></tr>
@@ -257,7 +257,7 @@ function calc(){
   // B35
   const B35=3800*n('J11')+2500*n('J15')+n('J20')*n('J19')+n('J24')*n('J23')+n('J28')*n('J27')+n('J32')*n('J31')+n('J36')*n('J35')+n('J40')*n('J39')+n('J44')*n('J43')+n('J48')*n('J47');
   set('B35',B35);
-  const B26=n('B25')-n('B24'); set('B26',B26);
+  const B26=nEl('B23')-n('B24')+n('B25'); set('B26',B26);
   const B30=n('B28')-n('B29'); set('B30',B30);
   const B33=B34+B35+n('B36'); set('B33',B33); set('B45',B33);
   const B46=n('B28')-n('B24')+n('B25')-n('B29'); set('B46',B46);
