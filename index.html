@@ -235,7 +235,8 @@ function calc(){
   const kd=s('B3');
   const yArr=['日','月','火','水','木','金','土'];
   document.getElementById('youbi_disp').textContent=kd?'（'+yArr[new Date(kd).getDay()]+'曜）':'';
-  document.getElementById('B44').textContent=kd?new Date(kd).toLocaleDateString('ja-JP'):'';
+  const _kd=kd?new Date(kd+' 00:00:00'):null;
+  document.getElementById('B44').textContent=_kd?_kd.getFullYear()+'/'+(_kd.getMonth()+1)+'/'+_kd.getDate():'';
   // B列
   const B9=2700*n('B11'); set('B9',B9);
   const B13=2900*n('B15'); set('B13',B13);
@@ -361,7 +362,13 @@ function xlDateToStr(cellObj){
   const v=cellObj.v,t=cellObj.t;let year,month,day;
   if(t==='d'&&v instanceof Date){year=v.getFullYear();month=v.getMonth()+1;day=v.getDate();}
   else if(t==='n'||typeof v==='number'){const d=new Date((Math.floor(v)-25569)*86400000);year=d.getUTCFullYear();month=d.getUTCMonth()+1;day=d.getUTCDate();}
-  else if(t==='s'){const d=new Date(v);if(isNaN(d.getTime()))return null;year=d.getFullYear();month=d.getMonth()+1;day=d.getDate();}
+  else if(t==='s'){
+    // スラッシュ区切り（2026/03/22）またはハイフン区切り（2026-03-22）に対応
+    const normalized = String(v).replace(/\//g,'-');
+    const d=new Date(normalized+'T00:00:00');
+    if(isNaN(d.getTime()))return null;
+    year=d.getFullYear();month=d.getMonth()+1;day=d.getDate();
+  }
   else return null;
   if(!year||year<1900)return null;
   return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
