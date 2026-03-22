@@ -283,9 +283,9 @@ function clearForm(silent=false){
     saveToOneDrive().then(async ok=>{
       if(ok){
         toast('画面Clear ＆ Excel 列移動 完了','ok');
-        // 保存完了後にOneDriveから読み直して正確な4つのデータを取得
-        await loadFromOneDrive();
+        // 先にクリア、その後OneDriveから読み直して4つのデータをセット
         _clearInputs();
+        await loadFromOneDrive();
         calc();
       }
     });
@@ -372,8 +372,10 @@ function loadPrevDataFromE(){
   const ws2=wb.Sheets['売上・費用集計'],ws3=wb.Sheets['現金集計'];
   if(ws3){
     const e7=ws3['E7'];
-    if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);if(ds)document.getElementById('B42').value=ds;}
+    console.log('loadPrevDataFromE E7:', JSON.stringify(e7));
+    if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);console.log('E7変換:', ds);if(ds)document.getElementById('B42').value=ds.replace(/-/g,'/');}
     const e14=ws3['E14'];
+    console.log('loadPrevDataFromE E14:', JSON.stringify(e14));
     if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
   }
   if(ws2){
@@ -398,7 +400,7 @@ function loadFromXl(){
   if(!wb)return;
   const ws2=wb.Sheets['売上・費用集計'],ws3=wb.Sheets['現金集計'];
   if(ws3){
-    const e7=ws3['E7'];if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);if(ds)document.getElementById('B42').value=ds;}
+    const e7=ws3['E7'];if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);if(ds)document.getElementById('B42').value=ds.replace(/-/g,'/');};
     const e14=ws3['E14'];if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
   }
   if(ws2){
