@@ -442,18 +442,8 @@ async function initMsal(cid,silent=false){
 }
 function updateLoginUI(account){document.getElementById('loginDot').style.background='#70AD47';document.getElementById('loginStatusText').textContent='✅ '+account.username;document.getElementById('msBtnText').textContent='ログアウト';document.getElementById('msBtn').onclick=doLogout;document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#555;';document.getElementById('xlFileLabel').style.display='none';document.getElementById('fileLabel').textContent='';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);const rb=document.getElementById('bReload');rb.disabled=false;rb.style.display='';}
 function doLogout(){if(msalApp)msalApp.logoutPopup();graphToken=null;document.getElementById('loginDot').style.background='#ffb8c8';document.getElementById('loginStatusText').textContent='未接続';document.getElementById('msBtnText').textContent='Microsoftでログイン';document.getElementById('msBtn').onclick=handleMsLogin;document.getElementById('msBtn').style.cssText='background:rgba(255,255,255,0.93);color:#a05070;';document.getElementById('xlFileLabel').style.display='';document.getElementById('fileLabel').textContent='（ファイル未選択）';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);const rb3=document.getElementById('bReload');rb3.disabled=true;rb3.style.display='none';}
-async function reloadData(){
-  if(!wb&&!graphToken){toast('先にExcelファイルを開いてください','err');return;}
-  // 入力欄をクリア
-  _clearInputs();
-  if(graphToken){
-    // OneDrive経由の場合は最新データを再取得
-    await loadFromOneDrive();
-  } else {
-    // ローカルファイルの場合はメモリ上のwbから再取得
-    loadFromXl();
-    toast('Excel Fileを取り込みました','ok');
-  }
+function reloadData(){
+  location.reload();
 }
 
 async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true});loadFromXl();toast('Excel Fileを取り込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
