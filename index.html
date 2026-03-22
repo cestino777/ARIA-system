@@ -270,6 +270,7 @@ function clearForm(silent=false){
   insertColumnBeforeD(wb.Sheets['売上・費用集計']);
   insertColumnBeforeD(wb.Sheets['現金集計']);
   _clearInputs(); loadPrevDataFromE(); calc();
+  restoreSheets(wb);
   applyStyles(wb);
   if(graphToken){toast('列シフト中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){toast('画面Clear ＆ Excel 列移動 完了','ok');await loadFromOneDrive();}});}
   else{XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm',{bookType:'xlsm',bookVBA:true});toast('画面Clear ＆ Excel 列移動 完了','ok');}
@@ -321,7 +322,7 @@ let wb=null;
 document.getElementById('xlFile').addEventListener('change',e=>{if(e.target.files[0])loadXl(e.target.files[0]);});
 function loadXl(file){
   const r=new FileReader();
-  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true,bookVBA:true});document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin'].forEach(id=>document.getElementById(id).disabled=false);document.getElementById('bClear').disabled=true;_salesDone=false;_genkinDone=false;const rb2=document.getElementById('bReload');rb2.disabled=false;rb2.style.display='';loadFromXl();toast('Excel Fileを取り込みました','ok');};
+  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true,bookVBA:true});preserveSheets(wb);document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin'].forEach(id=>document.getElementById(id).disabled=false);document.getElementById('bClear').disabled=true;_salesDone=false;_genkinDone=false;const rb2=document.getElementById('bReload');rb2.disabled=false;rb2.style.display='';loadFromXl();toast('Excel Fileを取り込みました','ok');};
   r.readAsBinaryString(file);
 }
 function gc(addr){if(!wb)return null;const ws=wb.Sheets['振込明細計算'];if(!ws||!ws[addr])return null;return ws[addr].v;}
@@ -339,6 +340,27 @@ function loadFromXl(){
     const e15=ws2['E15'];if(e15&&e15.v!==undefined){const el=document.getElementById('B27');if(el)el.textContent=Math.round(e15.v).toLocaleString();}
   }
   calc();
+}
+
+// 保護するシート名リスト（HTMLが触らないシート）
+const _preservedSheets = {};
+function preserveSheets(wb){
+  // HTMLが触らない全シートのデータを保存
+  if(!wb||!wb.SheetNames) return;
+  const touchedSheets = ['振込明細計算','売上・費用集計','現金集計'];
+  wb.SheetNames.forEach(name=>{
+    if(!touchedSheets.includes(name)){
+      _preservedSheets[name] = JSON.parse(JSON.stringify(wb.Sheets[name]||{}));
+    }
+  });
+  console.log('保護シート:', Object.keys(_preservedSheets));
+}
+function restoreSheets(wb){
+  // 保存しておいたシートを復元
+  Object.keys(_preservedSheets).forEach(name=>{
+    wb.Sheets[name] = JSON.parse(JSON.stringify(_preservedSheets[name]));
+    if(!wb.SheetNames.includes(name)) wb.SheetNames.push(name);
+  });
 }
 
 function applyStyles(wb){
@@ -470,7 +492,8 @@ function doExport(mode){
       sc(ws3,'D11',n('B48')||0);sc(ws3,'D12',n('B49')||0);sc(ws3,'D13',n('B50')||0);sc(ws3,'D14',nEl('B51')||0);
     }
   }
-  // スタイル適用
+  // 保護シートを復元してからスタイル適用
+  restoreSheets(wb);
   applyStyles(wb);
 
   const fname='2026年_ARIA_売上_経費計算_修正版_'+(kd?kd.replace(/-/g,''):'output')+'.xlsm';
@@ -512,7 +535,7 @@ function reloadData(){
   location.reload();
 }
 
-async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true,bookVBA:true});loadFromXl();toast('Excel Fileを取り込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
+async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true,bookVBA:true});preserveSheets(wb);loadFromXl();toast('Excel Fileを取り込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
 async function saveToOneDrive(){if(!graphToken)return false;const path=localStorage.getItem('aria_path');if(!path)return false;try{const wbout=XLSX.write(wb,{bookType:'xlsm',type:'array',bookVBA:true});const blob=new Blob([wbout],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+graphToken,'Content-Type':'application/vnd.ms-excel.sheet.macroEnabled.12'},body:blob});if(!res.ok)throw new Error('書き込みエラー: '+res.status);return true;}catch(e){toast('OneDrive書き込みエラー：'+e.message,'err');return false;}}
 
 let _salesDone=false,_genkinDone=false;
