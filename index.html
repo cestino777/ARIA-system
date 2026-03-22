@@ -68,6 +68,7 @@ td.or{color:#b84400;}td.gn{color:#1a4a08;}td.b2{color:#0000CC;font-weight:bold;}
     <svg width="13" height="13" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
     <span id="msBtnText">Microsoftでログイン</span>
   </button>
+  <button class="tbtn gray" id="bReload" onclick="reloadData()" disabled style="display:none;">🔄 再度Data取り込み</button>
   <label class="tbtn" for="xlFile" style="cursor:pointer" id="xlFileLabel">📂 Excelを開く</label>
   <input type="file" id="xlFile" accept=".xlsx,.xlsm,.xls">
   <span id="fileLabel"></span>
@@ -145,13 +146,13 @@ td.or{color:#b84400;}td.gn{color:#1a4a08;}td.b2{color:#0000CC;font-weight:bold;}
 
 <!-- 行9〜12: 花材費計 / 進級セット -->
 <tr><td class="or bl">花材費 計</td><td class="calc"><div class="ro-or" id="B9"></div></td><td class="un calc">円</td><td class="sp" colspan="5"></td><td class="or bl">進級セット</td><td><div class="ro-or" id="J9"></div></td><td class="un">円</td></tr>
-<tr><td class="r">支払い単価</td><td class="fv">2,700</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td><input type="number" id="J10" value="3000" class="inp" oninput="calc()"></td><td class="un">円</td></tr>
+<tr><td class="r">支払い単価</td><td class="fv">2,700</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td class="fv">3,000</td><td class="un">円</td></tr>
 <tr><td class="r">人数</td><td><input type="number" id="B11" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td><td class="sp" colspan="5"></td><td class="r">人数</td><td><input type="number" id="J11" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td></tr>
 <tr><td class="r">受取単価</td><td class="fv">4,200</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td class="fv">3,800</td><td class="un">円</td></tr>
 
 <!-- 行13〜16: プリザーブドP / テキスト代 -->
 <tr><td class="or bl">プリザーブド・P　計</td><td class="calc"><div class="ro-or" id="B13"></div></td><td class="un calc">円</td><td class="sp" colspan="5"></td><td class="or grp bl">テキスト代</td><td class="grp"><div class="ro-or" id="J13"></div></td><td class="un grp">円</td></tr>
-<tr><td class="r">支払い単価</td><td class="fv">2,900</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td><input type="number" id="J14" value="2000" class="inp" oninput="calc()"></td><td class="un">円</td></tr>
+<tr><td class="r">支払い単価</td><td class="fv">2,900</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">支払い単価</td><td class="fv">2,000</td><td class="un">円</td></tr>
 <tr><td class="r">人数</td><td><input type="number" id="B15" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td><td class="sp" colspan="5"></td><td class="r">人数</td><td><input type="number" id="J15" class="inp" min="0" placeholder="0" oninput="calc()"></td><td class="un">人</td></tr>
 <tr><td class="r">受取単価</td><td class="fv">4,400</td><td class="un">円</td><td class="sp" colspan="5"></td><td class="r">受取単価</td><td class="fv">2,500</td><td class="un">円</td></tr>
 
@@ -241,8 +242,8 @@ function calc(){
   const B17=5700*n('B19'); set('B17',B17);
   const B34=n('B11')*4200+n('B15')*4400+n('B19')*7700; set('B34',B34);
   // J列
-  const J9=n('J10')*n('J11'); set('J9',J9);
-  const J13=n('J14')*n('J15'); set('J13',J13);
+  const J9=3000*n('J11'); set('J9',J9);
+  const J13=2000*n('J15'); set('J13',J13);
   const J17=n('J18')*n('J19'); set('J17',J17);
   const J21=n('J22')*n('J23'); set('J21',J21);
   const J25=n('J26')*n('J27'); set('J25',J25);
@@ -274,7 +275,7 @@ function clearForm(silent=false){
 }
 
 function _clearInputs(){
-  const keep=['J10','J14'];
+  const keep=[];
   document.querySelectorAll('input.inp,input.inp-ph').forEach(e=>{if(keep.includes(e.id))return;if(e.type==='date')e.value='';else if(e.tagName==='SELECT')e.value='';else e.value='';});
   document.getElementById('B3').value=new Date().toISOString().split('T')[0];
 }
@@ -319,12 +320,12 @@ let wb=null;
 document.getElementById('xlFile').addEventListener('change',e=>{if(e.target.files[0])loadXl(e.target.files[0]);});
 function loadXl(file){
   const r=new FileReader();
-  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true});document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);loadFromXl();toast('Excel Fileを取り込みました','ok');};
+  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true});document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);const rb2=document.getElementById('bReload');rb2.disabled=false;rb2.style.display='';loadFromXl();toast('Excel Fileを取り込みました','ok');};
   r.readAsBinaryString(file);
 }
 function gc(addr){if(!wb)return null;const ws=wb.Sheets['振込明細計算'];if(!ws||!ws[addr])return null;return ws[addr].v;}
 function loadFromXl(){
-  [['J10','J10'],['J14','J14']].forEach(([a,id])=>{const v=gc(a);if(v!=null)document.getElementById(id).value=v;});
+  // J10(3000)・J14(2000)は固定値のため読み込み不要
   // E列から前回データ
   if(!wb)return;
   const ws2=wb.Sheets['売上・費用集計'],ws3=wb.Sheets['現金集計'];
@@ -364,8 +365,8 @@ function doExport(mode){
       sc(ws1,'B36',n('B36')||0);sc(ws1,'B38',n('B38')||0);
       if(s('B42'))sc(ws1,'B42',new Date(s('B42')+'T00:00:00'));
       sc(ws1,'B43',n('B43')||0);sc(ws1,'B48',n('B48')||0);sc(ws1,'B49',n('B49')||0);sc(ws1,'B50',n('B50')||0);
-      sc(ws1,'J10',n('J10')||0);sc(ws1,'J11',n('J11')||0);sc(ws1,'J12',3800);
-      sc(ws1,'J14',n('J14')||0);sc(ws1,'J15',n('J15')||0);sc(ws1,'J16',2500);
+      sc(ws1,'J10',3000);sc(ws1,'J11',n('J11')||0);sc(ws1,'J12',3800);
+      sc(ws1,'J14',2000);sc(ws1,'J15',n('J15')||0);sc(ws1,'J16',2500);
       sc(ws1,'J18',n('J18')||0);sc(ws1,'J19',n('J19')||0);sc(ws1,'J20',n('J20')||0);
       sc(ws1,'J22',n('J22')||0);sc(ws1,'J23',n('J23')||0);sc(ws1,'J24',n('J24')||0);
       sc(ws1,'J26',n('J26')||0);sc(ws1,'J27',n('J27')||0);sc(ws1,'J28',n('J28')||0);
@@ -384,8 +385,8 @@ function doExport(mode){
       sc(ws2,'D17',nEl('B9')||0);sc(ws2,'D18',2700);sc(ws2,'D19',n('B11')||0);sc(ws2,'D20',4200);
       sc(ws2,'D21',nEl('B13')||0);sc(ws2,'D22',2900);sc(ws2,'D23',n('B15')||0);sc(ws2,'D24',4400);
       sc(ws2,'D25',nEl('B17')||0);sc(ws2,'D26',5700);sc(ws2,'D27',n('B19')||0);sc(ws2,'D28',7700);
-      sc(ws2,'D29',nEl('J9')||0);sc(ws2,'D30',n('J10')||0);sc(ws2,'D31',n('J11')||0);sc(ws2,'D32',3800);
-      sc(ws2,'D33',nEl('J13')||0);sc(ws2,'D34',n('J14')||0);sc(ws2,'D35',n('J15')||0);sc(ws2,'D36',2500);
+      sc(ws2,'D29',nEl('J9')||0);sc(ws2,'D30',3000);sc(ws2,'D31',n('J11')||0);sc(ws2,'D32',3800);
+      sc(ws2,'D33',nEl('J13')||0);sc(ws2,'D34',2000);sc(ws2,'D35',n('J15')||0);sc(ws2,'D36',2500);
       sc(ws2,'D37',nEl('J17')||0);sc(ws2,'D38',n('J18')||0);sc(ws2,'D39',n('J19')||0);sc(ws2,'D40',n('J20')||0);
       sc(ws2,'D41',nEl('J21')||0);sc(ws2,'D42',n('J22')||0);sc(ws2,'D43',n('J23')||0);sc(ws2,'D44',n('J24')||0);
       sc(ws2,'D45',nEl('J25')||0);sc(ws2,'D46',n('J26')||0);sc(ws2,'D47',n('J27')||0);sc(ws2,'D48',n('J28')||0);
@@ -439,8 +440,17 @@ async function initMsal(cid,silent=false){
     graphToken=tokenRes.accessToken;updateLoginUI(res.account);toast('ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');await loadFromOneDrive();
   }catch(e){console.log('ログインエラー:',e.message);}
 }
-function updateLoginUI(account){document.getElementById('loginDot').style.background='#70AD47';document.getElementById('loginStatusText').textContent='✅ '+account.username;document.getElementById('msBtnText').textContent='ログアウト';document.getElementById('msBtn').onclick=doLogout;document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#555;';document.getElementById('xlFileLabel').style.display='none';document.getElementById('fileLabel').textContent='';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);}
-function doLogout(){if(msalApp)msalApp.logoutPopup();graphToken=null;document.getElementById('loginDot').style.background='#ffb8c8';document.getElementById('loginStatusText').textContent='未接続';document.getElementById('msBtnText').textContent='Microsoftでログイン';document.getElementById('msBtn').onclick=handleMsLogin;document.getElementById('msBtn').style.cssText='background:rgba(255,255,255,0.93);color:#a05070;';document.getElementById('xlFileLabel').style.display='';document.getElementById('fileLabel').textContent='（ファイル未選択）';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);}
+function updateLoginUI(account){document.getElementById('loginDot').style.background='#70AD47';document.getElementById('loginStatusText').textContent='✅ '+account.username;document.getElementById('msBtnText').textContent='ログアウト';document.getElementById('msBtn').onclick=doLogout;document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#555;';document.getElementById('xlFileLabel').style.display='none';document.getElementById('fileLabel').textContent='';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);const rb=document.getElementById('bReload');rb.disabled=false;rb.style.display='';}
+function doLogout(){if(msalApp)msalApp.logoutPopup();graphToken=null;document.getElementById('loginDot').style.background='#ffb8c8';document.getElementById('loginStatusText').textContent='未接続';document.getElementById('msBtnText').textContent='Microsoftでログイン';document.getElementById('msBtn').onclick=handleMsLogin;document.getElementById('msBtn').style.cssText='background:rgba(255,255,255,0.93);color:#a05070;';document.getElementById('xlFileLabel').style.display='';document.getElementById('fileLabel').textContent='（ファイル未選択）';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);const rb3=document.getElementById('bReload');rb3.disabled=true;rb3.style.display='none';}
+function reloadData(){
+  if(!wb){toast('先にExcelファイルを開いてください','err');return;}
+  // 入力欄をクリア
+  _clearInputs();
+  // Excelから4か所のデータを再取得
+  loadFromXl();
+  toast('Excel Fileを取り込みました','ok');
+}
+
 async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true});loadFromXl();toast('Excel Fileを取り込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
 async function saveToOneDrive(){if(!graphToken)return false;const path=localStorage.getItem('aria_path');if(!path)return false;try{const wbout=XLSX.write(wb,{bookType:'xlsm',type:'array'});const blob=new Blob([wbout],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+graphToken,'Content-Type':'application/vnd.ms-excel.sheet.macroEnabled.12'},body:blob});if(!res.ok)throw new Error('書き込みエラー: '+res.status);return true;}catch(e){toast('OneDrive書き込みエラー：'+e.message,'err');return false;}}
 
