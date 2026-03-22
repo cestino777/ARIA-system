@@ -264,13 +264,13 @@ function calc(){
 }
 
 function clearForm(silent=false){
-  if(!wb){if(!silent&&!confirm('HTMLの入力内容をクリアします。よろしいですか？'))return;_clearInputs();calc();toast('入力をクリアしました','ok');return;}
+  if(!wb){if(!silent&&!confirm('HTMLの入力内容をクリアします。よろしいですか？'))return;_clearInputs();calc();toast('画面Clear ＆ Excel 列移動 完了','ok');return;}
   if(!silent&&!confirm('売上・費用集計と現金集計のD列前に列挿入してデータを右シフトし、HTMLをクリアします。よろしいですか？'))return;
   insertColumnBeforeD(wb.Sheets['売上・費用集計']);
   insertColumnBeforeD(wb.Sheets['現金集計']);
   _clearInputs(); loadPrevDataFromE(); calc();
-  if(graphToken){toast('列シフト中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){toast('列シフト完了！OneDriveに保存しました ✅','ok');await loadFromOneDrive();}});}
-  else{XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm');toast('列シフト完了！ダウンロードされました','ok');}
+  if(graphToken){toast('列シフト中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){toast('画面Clear ＆ Excel 列移動 完了','ok');await loadFromOneDrive();}});}
+  else{XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm');toast('画面Clear ＆ Excel 列移動 完了','ok');}
 }
 
 function _clearInputs(){
@@ -319,7 +319,7 @@ let wb=null;
 document.getElementById('xlFile').addEventListener('change',e=>{if(e.target.files[0])loadXl(e.target.files[0]);});
 function loadXl(file){
   const r=new FileReader();
-  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true});document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);loadFromXl();toast('Excelファイルを読み込みました','ok');};
+  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true});document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);loadFromXl();toast('Excel Fileを取り込みました','ok');};
   r.readAsBinaryString(file);
 }
 function gc(addr){if(!wb)return null;const ws=wb.Sheets['振込明細計算'];if(!ws||!ws[addr])return null;return ws[addr].v;}
@@ -408,8 +408,8 @@ function doExport(mode){
   }
   const fname='2026年_ARIA_売上_経費計算_修正版_'+(kd?kd.replace(/-/g,''):'output')+'.xlsm';
   const nm={sales:'売上集計転記',genkin:'現金集計転記'};
-  if(graphToken){toast(nm[mode]+'中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){toast(nm[mode]+'完了！OneDriveに保存しました ✅','ok');await loadFromOneDrive();}});}
-  else{XLSX.writeFile(wb,fname);toast(nm[mode]+'完了！ダウンロードされました','ok');}
+  if(graphToken){toast(nm[mode]+'中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');await loadFromOneDrive();}});}
+  else{XLSX.writeFile(wb,fname);toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');}
 }
 
 document.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropOv').classList.add('on');});
@@ -441,7 +441,7 @@ async function initMsal(cid,silent=false){
 }
 function updateLoginUI(account){document.getElementById('loginDot').style.background='#70AD47';document.getElementById('loginStatusText').textContent='✅ '+account.username;document.getElementById('msBtnText').textContent='ログアウト';document.getElementById('msBtn').onclick=doLogout;document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#555;';document.getElementById('xlFileLabel').style.display='none';document.getElementById('fileLabel').textContent='';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=false);}
 function doLogout(){if(msalApp)msalApp.logoutPopup();graphToken=null;document.getElementById('loginDot').style.background='#ffb8c8';document.getElementById('loginStatusText').textContent='未接続';document.getElementById('msBtnText').textContent='Microsoftでログイン';document.getElementById('msBtn').onclick=handleMsLogin;document.getElementById('msBtn').style.cssText='background:rgba(255,255,255,0.93);color:#a05070;';document.getElementById('xlFileLabel').style.display='';document.getElementById('fileLabel').textContent='（ファイル未選択）';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);}
-async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true});loadFromXl();toast('OneDriveからデータを読み込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
+async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true});loadFromXl();toast('Excel Fileを取り込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
 async function saveToOneDrive(){if(!graphToken)return false;const path=localStorage.getItem('aria_path');if(!path)return false;try{const wbout=XLSX.write(wb,{bookType:'xlsm',type:'array'});const blob=new Blob([wbout],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+graphToken,'Content-Type':'application/vnd.ms-excel.sheet.macroEnabled.12'},body:blob});if(!res.ok)throw new Error('書き込みエラー: '+res.status);return true;}catch(e){toast('OneDrive書き込みエラー：'+e.message,'err');return false;}}
 
 window.onload=()=>{document.getElementById('B3').value=new Date().toISOString().split('T')[0];loadSettings();calc();if(window.msal&&msalApp){const a=msalApp.getAllAccounts();if(a.length>0)updateLoginUI(a[0]);}};
