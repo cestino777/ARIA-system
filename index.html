@@ -373,7 +373,7 @@ function loadPrevDataFromE(){
   if(ws3){
     const e7=ws3['E7'];
     console.log('loadPrevDataFromE E7:', JSON.stringify(e7));
-    if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);console.log('E7変換:', ds);if(ds)document.getElementById('B42').value=ds.replace(/-/g,'/');}
+    if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);console.log('E7変換:', ds);if(ds)document.getElementById('B42').value=ds;}
     const e14=ws3['E14'];
     console.log('loadPrevDataFromE E14:', JSON.stringify(e14));
     if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
@@ -400,7 +400,7 @@ function loadFromXl(){
   if(!wb)return;
   const ws2=wb.Sheets['売上・費用集計'],ws3=wb.Sheets['現金集計'];
   if(ws3){
-    const e7=ws3['E7'];if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);if(ds)document.getElementById('B42').value=ds.replace(/-/g,'/');};
+    const e7=ws3['E7'];if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);if(ds)document.getElementById('B42').value=ds;};
     const e14=ws3['E14'];if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
   }
   if(ws2){
