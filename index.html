@@ -267,13 +267,26 @@ function calc(){
 function clearForm(silent=false){
   if(!wb){if(!silent&&!confirm('HTMLの入力内容をクリアします。よろしいですか？'))return;_clearInputs();calc();toast('画面Clear ＆ Excel 列移動 完了','ok');return;}
   if(!silent&&!confirm('売上・費用集計と現金集計のD列前に列挿入してデータを右シフトし、HTMLをクリアします。よろしいですか？'))return;
+  // 二重実行防止：ボタンを即座にdisabled
+  document.getElementById('bClear').disabled=true;
   insertColumnBeforeD(wb.Sheets['売上・費用集計']);
   insertColumnBeforeD(wb.Sheets['現金集計']);
   _clearInputs(); loadPrevDataFromE(); calc();
   restoreSheets(wb);
   applyStyles(wb);
-  if(graphToken){toast('列シフト中… OneDriveに保存しています','');saveToOneDrive().then(ok=>{if(ok){toast('画面Clear ＆ Excel 列移動 完了','ok');}});}
-  else{XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm',{bookType:'xlsm',bookVBA:true});toast('画面Clear ＆ Excel 列移動 完了','ok');}
+  if(graphToken){
+    toast('列シフト中… OneDriveに保存しています','');
+    saveToOneDrive().then(async ok=>{
+      if(ok){
+        toast('画面Clear ＆ Excel 列移動 完了','ok');
+        // 保存完了後にOneDriveから再読み込みして4つのデータを正しく取得
+        await loadFromOneDrive();
+      }
+    });
+  } else {
+    XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm',{bookType:'xlsm',bookVBA:true});
+    toast('画面Clear ＆ Excel 列移動 完了','ok');
+  }
 }
 
 function _clearInputs(){
@@ -305,16 +318,16 @@ function loadPrevDataFromE(){
   if(!wb)return;
   const ws2=wb.Sheets['売上・費用集計'],ws3=wb.Sheets['現金集計'];
   if(ws3){
-    const e7=ws3['E7'];console.log('E7:',JSON.stringify(e7));
+    const e7=ws3['E7'];
     if(e7&&e7.v!==undefined){const ds=xlDateToStr(e7);if(ds)document.getElementById('B42').value=ds;}
-    const e14=ws3['E14'];console.log('E14:',JSON.stringify(e14));
+    const e14=ws3['E14'];
     if(e14&&e14.v!==undefined)document.getElementById('B43').value=e14.v;
   }
   if(ws2){
-    const e12=ws2['E12'];console.log('E12:',JSON.stringify(e12));
-    if(e12&&e12.v!==undefined)setIn('B23_in',e12.v);
-    const e15=ws2['E15'];console.log('E15:',JSON.stringify(e15));
-    if(e15&&e15.v!==undefined)setIn('B27_in',e15.v);
+    const e12=ws2['E12'];
+    if(e12&&e12.v!==undefined){const el=document.getElementById('B23');if(el)el.textContent=Math.round(e12.v).toLocaleString();}
+    const e15=ws2['E15'];
+    if(e15&&e15.v!==undefined){const el=document.getElementById('B27');if(el)el.textContent=Math.round(e15.v).toLocaleString();}
   }
 }
 
