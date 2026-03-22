@@ -270,6 +270,7 @@ function clearForm(silent=false){
   insertColumnBeforeD(wb.Sheets['売上・費用集計']);
   insertColumnBeforeD(wb.Sheets['現金集計']);
   _clearInputs(); loadPrevDataFromE(); calc();
+  applyStyles(wb);
   if(graphToken){toast('列シフト中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){toast('画面Clear ＆ Excel 列移動 完了','ok');await loadFromOneDrive();}});}
   else{XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm');toast('画面Clear ＆ Excel 列移動 完了','ok');}
 }
@@ -340,6 +341,68 @@ function loadFromXl(){
   calc();
 }
 
+function applyStyles(wb){
+  const dblBorder  = {style:'double', color:{rgb:'000000'}};
+  const thinBorder = {style:'thin',   color:{rgb:'000000'}};
+  const blueFont   = {bold:true, color:{rgb:'0000FF'}};
+
+  // シートの実際の最終列を動的取得
+  function getMaxCol(ws){
+    if(!ws||!ws['!ref']) return 15;
+    return XLSX.utils.decode_range(ws['!ref']).e.c + 1;
+  }
+
+  // 下罫線を適用（セルが空でも作成）
+  function setBorderBottom(ws, addr, border){
+    if(!ws[addr]) ws[addr]={t:'z',v:''};
+    if(!ws[addr].s) ws[addr].s={};
+    if(!ws[addr].s.border) ws[addr].s.border={};
+    ws[addr].s.border.bottom = border;
+  }
+
+  // ── 売上・費用集計シートのスタイル適用 ──
+  const ws2 = wb.Sheets['売上・費用集計'];
+  if(ws2){
+    const maxCol = getMaxCol(ws2);
+
+    // A5/A9/A10/A14/A73のみ：青色＆太文字
+    [5,9,10,14,73].forEach(r=>{
+      const addr='A'+r;
+      if(!ws2[addr]) ws2[addr]={t:'z',v:''};
+      if(!ws2[addr].s) ws2[addr].s={};
+      ws2[addr].s.font = blueFont;
+    });
+
+    // 行8/28/68：全列に二重下線
+    [8,28,68].forEach(r=>{
+      for(let c=1;c<=maxCol;c++)
+        setBorderBottom(ws2, colName(c)+r, dblBorder);
+    });
+
+    // 行20/24/32/36/40/44/48/52/56/60/64：全列に一重下線
+    [20,24,32,36,40,44,48,52,56,60,64].forEach(r=>{
+      for(let c=1;c<=maxCol;c++)
+        setBorderBottom(ws2, colName(c)+r, thinBorder);
+    });
+  }
+
+  // ── 現金集計シートのスタイル適用 ──
+  const ws3 = wb.Sheets['現金集計'];
+  if(ws3){
+    const maxCol = getMaxCol(ws3);
+    // 行7：全列に二重下線
+    for(let c=1;c<=maxCol;c++)
+      setBorderBottom(ws3, colName(c)+'7', dblBorder);
+  }
+}
+
+// 列番号(1始まり)→列名(A,B,...,Z,AA...)変換
+function colName(n){
+  let s='';
+  while(n>0){s=String.fromCharCode(64+(n%26||26))+s;n=Math.floor((n-1)/26);}
+  return s;
+}
+
 function sc(ws,addr,val){
   if(!ws)return;if(!ws[addr])ws[addr]={};const c=ws[addr];
   if(val===null||val===undefined||val===''){c.t='z';c.v='';c.w='';return;}
@@ -407,6 +470,9 @@ function doExport(mode){
       sc(ws3,'D11',n('B48')||0);sc(ws3,'D12',n('B49')||0);sc(ws3,'D13',n('B50')||0);sc(ws3,'D14',nEl('B51')||0);
     }
   }
+  // スタイル適用
+  applyStyles(wb);
+
   const fname='2026年_ARIA_売上_経費計算_修正版_'+(kd?kd.replace(/-/g,''):'output')+'.xlsm';
   const nm={sales:'売上集計転記',genkin:'現金集計転記'};
   if(graphToken){toast(nm[mode]+'中… OneDriveに保存しています','');saveToOneDrive().then(async ok=>{if(ok){if(mode==='sales')_salesDone=true;else _genkinDone=true;checkFinalBtn();toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');await loadFromOneDrive();}});}
