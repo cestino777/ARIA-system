@@ -638,7 +638,48 @@ function checkFinalBtn(){
   const btn=document.getElementById('bClear');
   if(_salesDone&&_genkinDone){btn.disabled=false;}
 }
-window.onload=()=>{document.getElementById('B3').value=new Date().toISOString().split('T')[0];loadSettings();calc();if(window.msal&&msalApp){const a=msalApp.getAllAccounts();if(a.length>0)updateLoginUI(a[0]);}};
+// Enterキーで次の入力欄に移動
+const _enterOrder = [
+  'B3','J3',
+  'B11','B15','B19',
+  'J11','J15',
+  'I17','J19','J20',
+  'I21','J23','J24',
+  'I25','J27','J28',
+  'I29','J31','J32',
+  'I33','J35','J36',
+  'I37','J39','J40',
+  'I41','J43','J44',
+  'I45','J47','J48',
+  'B24','B25','B28','B29',
+  'B36','B38',
+  'B42','B43',
+  'B48','B49','B50'
+];
+
+function _setupEnterKey(){
+  _enterOrder.forEach((id, idx)=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        // 次の入力欄を探す
+        const nextId = _enterOrder[idx+1];
+        if(nextId){
+          const next = document.getElementById(nextId);
+          if(next){
+            next.focus();
+            // input[type=date]以外は全選択
+            if(next.type !== 'date') next.select && next.select();
+          }
+        }
+      }
+    });
+  });
+}
+
+window.onload=()=>{document.getElementById('B3').value=new Date().toISOString().split('T')[0];loadSettings();calc();if(window.msal&&msalApp){const a=msalApp.getAllAccounts();if(a.length>0)updateLoginUI(a[0]);}setTimeout(()=>{document.getElementById('B3').focus();_setupEnterKey();},500);};
 </script>
 </body>
 </html>
