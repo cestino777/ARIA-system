@@ -239,7 +239,6 @@ function n(id){return parseFloat(document.getElementById(id)?.value)||0;}
 function s(id){return document.getElementById(id)?.value||'';}
 function set(id,v){const e=document.getElementById(id);if(!e)return;e.textContent=(v!==null&&v!==undefined&&v!=='')?Math.round(v).toLocaleString():'';}
 function setIn(id,v){const e=document.getElementById(id);if(!e)return;e.value=(v!==null&&v!==undefined&&v!=='')?Math.round(v):'';}
-let _azukariMinusWarned=false;
 
 function calc(){
   const kd=s('B3');
@@ -271,12 +270,7 @@ function calc(){
   const B26=nEl('B23')-n('B24')+n('B25'); set('B26',B26);
   const rawB30=Math.max(0,nEl('B27'))+n('B28')-n('B29');
   const B30=Math.max(0,rawB30); set('B30',B30);
-  if(rawB30<0){
-    if(!_azukariMinusWarned){toast('預り金残高がマイナスになる入力のため、0に補正しました','err');}
-    _azukariMinusWarned=true;
-  }else{
-    _azukariMinusWarned=false;
-  }
+  setAzukariMinusWarning(rawB30<0);
   const B33=B34+B35+n('B36'); set('B33',B33); set('B45',B33);
   const B46=n('B28')-n('B24')+n('B25')-n('B29'); set('B46',B46);
   const B51=n('B43')+B33+B46-n('B48')+n('B49')-n('B50'); set('B51',B51);
@@ -619,7 +613,28 @@ document.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.getElemen
 document.addEventListener('drop',e=>{e.preventDefault();document.getElementById('dropOv').classList.remove('on');const f=e.dataTransfer.files[0];if(f)loadXl(f);});
 
 let _tt=null;
-function toast(msg,type=''){const e=document.getElementById('toast');e.textContent=msg;e.className='on '+(type||'');if(_tt)clearTimeout(_tt);_tt=setTimeout(()=>e.className='',3500);}
+function toast(msg,type=''){
+  const e=document.getElementById('toast');
+  if(e.dataset.azukariMinus==='1')return;
+  e.textContent=msg;
+  e.className='on '+(type||'');
+  if(_tt)clearTimeout(_tt);
+  _tt=setTimeout(()=>e.className='',3500);
+}
+
+function setAzukariMinusWarning(show){
+  const e=document.getElementById('toast');
+  if(show){
+    if(_tt)clearTimeout(_tt);
+    e.dataset.azukariMinus='1';
+    e.textContent='預り金残高 が マイナスになります。確認してください。';
+    e.className='on err';
+  }else if(e.dataset.azukariMinus==='1'){
+    e.dataset.azukariMinus='';
+    e.textContent='';
+    e.className='';
+  }
+}
 
 function showSettings(){document.getElementById('cfgClientId').value=localStorage.getItem('aria_cid')||'';document.getElementById('cfgPath').value=localStorage.getItem('aria_path')||"/まさみFolder/お花関係Folder/まさみ'ｓ 特別File/お花関係/ARIA/2026年_ARIA_売上_経費計算_修正版.xlsm";document.getElementById('settingsPanel').style.display='flex';}
 function closeSettings(){document.getElementById('settingsPanel').style.display='none';}
