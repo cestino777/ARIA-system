@@ -42,7 +42,16 @@ td.or{color:#b84400;}td.gn{color:#1a4a08;}td.b2{color:#0000CC;font-weight:bold;}
 .inp{display:block;width:100%;height:19px;background:#e8fce8;border:none;border-radius:2px;font-size:10.5pt;text-align:right;padding:0 4px;color:#333;}
 .inp-l{display:block;width:100%;height:19px;background:#e8fce8;border:none;border-radius:2px;font-size:10.5pt;text-align:left;padding:0 4px;color:#333;}
 .inp-d{display:block;width:100%;height:19px;background:#e8fce8;border:none;border-radius:2px;font-size:9.5pt;text-align:left;padding:0 4px;color:#333;}
-.inp-ph{display:block;width:100%;height:19px;background:#fff5cc;border:none;border-radius:2px;font-size:9.5pt;text-align:left;padding:0 4px;color:#bbb;}
+.inp-ph{display:block;width:100%;height:19px;background:#fff5cc;border:none;border-radius:2px;font-size:9.5pt;text-align:left;padding:0 4px;color:#333;ime-mode:active;}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+input[type=number]{
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
 .ro-or{display:block;width:100%;height:19px;font-size:10.5pt;font-weight:bold;text-align:right;color:#b84400;padding:0 4px;}
 .ro-b2{display:block;width:100%;height:19px;font-size:10.5pt;font-weight:bold;text-align:right;color:#0000CC;padding:0 4px;}
 .ro-gn{display:block;width:100%;height:19px;font-size:10.5pt;font-weight:bold;text-align:right;color:#1a4a08;padding:0 4px;}
@@ -230,6 +239,7 @@ function n(id){return parseFloat(document.getElementById(id)?.value)||0;}
 function s(id){return document.getElementById(id)?.value||'';}
 function set(id,v){const e=document.getElementById(id);if(!e)return;e.textContent=(v!==null&&v!==undefined&&v!=='')?Math.round(v).toLocaleString():'';}
 function setIn(id,v){const e=document.getElementById(id);if(!e)return;e.value=(v!==null&&v!==undefined&&v!=='')?Math.round(v):'';}
+let _azukariMinusWarned=false;
 
 function calc(){
   const kd=s('B3');
@@ -259,7 +269,14 @@ function calc(){
   const B35=3800*n('J11')+2500*n('J15')+n('J20')*n('J19')+n('J24')*n('J23')+n('J28')*n('J27')+n('J32')*n('J31')+n('J36')*n('J35')+n('J40')*n('J39')+n('J44')*n('J43')+n('J48')*n('J47');
   set('B35',B35);
   const B26=nEl('B23')-n('B24')+n('B25'); set('B26',B26);
-  const B30=n('B28')-n('B29'); set('B30',B30);
+  const rawB30=Math.max(0,nEl('B27'))+n('B28')-n('B29');
+  const B30=Math.max(0,rawB30); set('B30',B30);
+  if(rawB30<0){
+    if(!_azukariMinusWarned){toast('預り金残高がマイナスになる入力のため、0に補正しました','err');}
+    _azukariMinusWarned=true;
+  }else{
+    _azukariMinusWarned=false;
+  }
   const B33=B34+B35+n('B36'); set('B33',B33); set('B45',B33);
   const B46=n('B28')-n('B24')+n('B25')-n('B29'); set('B46',B46);
   const B51=n('B43')+B33+B46-n('B48')+n('B49')-n('B50'); set('B51',B51);
@@ -389,7 +406,7 @@ function loadPrevDataFromE(){
     const e12=ws2['E12'];
     if(e12&&e12.v!==undefined){const el=document.getElementById('B23');if(el)el.textContent=Math.round(e12.v).toLocaleString();}
     const e15=ws2['E15'];
-    if(e15&&e15.v!==undefined){const el=document.getElementById('B27');if(el)el.textContent=Math.round(e15.v).toLocaleString();}
+    if(e15&&e15.v!==undefined){const el=document.getElementById('B27');if(el)el.textContent=Math.max(0,Math.round(e15.v)).toLocaleString();}
   }
 }
 
@@ -412,7 +429,7 @@ function loadFromXl(){
   }
   if(ws2){
     const e12=ws2['E12'];if(e12&&e12.v!==undefined){const el=document.getElementById('B23');if(el)el.textContent=Math.round(e12.v).toLocaleString();}
-    const e15=ws2['E15'];if(e15&&e15.v!==undefined){const el=document.getElementById('B27');if(el)el.textContent=Math.round(e15.v).toLocaleString();}
+    const e15=ws2['E15'];if(e15&&e15.v!==undefined){const el=document.getElementById('B27');if(el)el.textContent=Math.max(0,Math.round(e15.v)).toLocaleString();}
   }
   calc();
 }
