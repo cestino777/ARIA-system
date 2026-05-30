@@ -63,6 +63,15 @@ input[type=number]{
 #toast{position:fixed;bottom:18px;right:18px;background:#404040;color:#fff;padding:10px 20px;border-radius:6px;font-size:10pt;opacity:0;transition:opacity 0.3s;z-index:300;box-shadow:0 3px 10px rgba(0,0,0,.3);}
 #toast.on{opacity:1;}#toast.ok{background:#5a9a40;}#toast.err{background:#C00000;}
 #xlFile{display:none;}
+#processStatus{max-width:1050px;margin:10px auto 0;background:#fff;border:1px solid #e8c8d8;border-left:5px solid #c87a9a;border-radius:6px;padding:8px 12px;box-shadow:0 2px 10px rgba(168,88,120,0.10);font-size:10pt;color:#555;line-height:1.55;}
+#processStatusTitle{font-weight:bold;color:#a05070;margin-bottom:3px;}
+#processStatus .statusLine{display:flex;gap:10px;flex-wrap:wrap;}
+#processStatus .statusItem{display:inline-block;margin-right:14px;}
+#processStatus .label{font-weight:bold;color:#555;}
+#processStatus .ok{color:#2d7a22;font-weight:bold;}
+#processStatus .wait{color:#a06000;font-weight:bold;}
+#processStatus .err{color:#C00000;font-weight:bold;}
+#processStatus .info{color:#1F3864;font-weight:bold;}
 </style>
 </head>
 <body>
@@ -85,6 +94,15 @@ input[type=number]{
   <button class="tbtn orange" id="bGenkin" onclick="doExport('genkin')" disabled>💴 現金集計に転記</button>
   <button class="tbtn red"    id="bClear"  onclick="clearForm()"        disabled>✅ 最終処理</button>
   <button class="tbtn gray"   onclick="showSettings()" title="設定">⚙️</button>
+</div>
+
+<div id="processStatus">
+  <div id="processStatusTitle">処理状況</div>
+  <div class="statusLine">
+    <span class="statusItem"><span class="label">売上集計：</span><span id="salesStatusText" class="wait">未転記</span></span>
+    <span class="statusItem"><span class="label">現金集計：</span><span id="genkinStatusText" class="wait">未転記</span></span>
+  </div>
+  <div><span class="label">最終処理：</span><span id="finalStatusText" class="info">売上集計・現金集計の両方が完了すると実行できます。</span></div>
 </div>
 
 <!-- 設定パネル -->
@@ -283,6 +301,8 @@ function clearForm(silent=false){
   if(_clearRunning){toast('処理中です。しばらくお待ちください','err');return;}
   _clearRunning=true;
   document.getElementById('bClear').disabled=true;
+  const finalEl=document.getElementById('finalStatusText');
+  if(finalEl){finalEl.textContent='最終処理中… Excel列シフトとOneDrive保存を実行しています。';finalEl.className='info';}
   insertColumnBeforeD(wb.Sheets['売上・費用集計']);
   insertColumnBeforeD(wb.Sheets['現金集計']);
   // E列とF列を比較して同じなら削除（二重データ防止）
@@ -299,12 +319,27 @@ function clearForm(silent=false){
         _clearInputs();
         await loadFromOneDrive();
         calc();
+        _clearRunning=false;
+        resetProcessStatus();
+      }else{
+        _clearRunning=false;
+        checkFinalBtn();
+        const finalEl=document.getElementById('finalStatusText');
+        if(finalEl){finalEl.textContent='最終処理のOneDrive保存に失敗しました。再度、最終処理を実行してください。';finalEl.className='err';}
       }
+    }).catch(e=>{
+      _clearRunning=false;
+      checkFinalBtn();
+      toast('最終処理エラー：'+e.message,'err');
+      const finalEl=document.getElementById('finalStatusText');
+      if(finalEl){finalEl.textContent='最終処理でエラーが発生しました。再度確認してください。';finalEl.className='err';}
     });
   } else {
     XLSX.writeFile(wb,'2026年_ARIA_売上_経費計算_修正版.xlsm',{bookType:'xlsm',bookVBA:true});
     _clearInputs(); loadPrevDataFromE(); calc();
     toast('画面Clear ＆ Excel 列移動 完了','ok');
+    _clearRunning=false;
+    resetProcessStatus();
   }
 }
 
@@ -408,7 +443,7 @@ let wb=null;
 document.getElementById('xlFile').addEventListener('change',e=>{if(e.target.files[0])loadXl(e.target.files[0]);});
 function loadXl(file){
   const r=new FileReader();
-  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true,bookVBA:true});preserveSheets(wb);document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin'].forEach(id=>document.getElementById(id).disabled=false);document.getElementById('bClear').disabled=true;_salesDone=false;_genkinDone=false;const rb2=document.getElementById('bReload');rb2.disabled=false;rb2.style.display='';loadFromXl();toast('Excel Fileを取り込みました','ok');};
+  r.onload=ev=>{wb=XLSX.read(ev.target.result,{type:'binary',cellStyles:true,cellFormulas:true,bookVBA:true});preserveSheets(wb);document.getElementById('fileLabel').textContent=file.name;['bSales','bGenkin'].forEach(id=>document.getElementById(id).disabled=false);document.getElementById('bClear').disabled=true;resetProcessStatus();const rb2=document.getElementById('bReload');rb2.disabled=false;rb2.style.display='';loadFromXl();toast('Excel Fileを取り込みました','ok');};
   r.readAsBinaryString(file);
 }
 function gc(addr){if(!wb)return null;const ws=wb.Sheets['振込明細計算'];if(!ws||!ws[addr])return null;return ws[addr].v;}
@@ -523,6 +558,7 @@ function nEl(id){return parseFloat(document.getElementById(id)?.textContent?.rep
 
 function doExport(mode){
   if(!wb){toast('先にExcelファイルを開いてください','err');return;}
+  if(_exportRunning){toast('保存処理中です。完了Messageが出るまでお待ちください','err');updateProcessStatus();return;}
   const ws1=wb.Sheets['振込明細計算'],ws2=wb.Sheets['売上・費用集計'],ws3=wb.Sheets['現金集計'];
   const kd=s('B3'),ky=s('J3'),kDate=kd?new Date(kd):null;
 
@@ -604,8 +640,41 @@ function doExport(mode){
 
   const fname='2026年_ARIA_売上_経費計算_修正版_'+(kd?kd.replace(/-/g,''):'output')+'.xlsm';
   const nm={sales:'売上集計転記',genkin:'現金集計転記'};
-  if(graphToken){toast(nm[mode]+'中… OneDriveに保存しています','');saveToOneDrive().then(ok=>{if(ok){if(mode==='sales')_salesDone=true;else _genkinDone=true;checkFinalBtn();toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');}});}
-  else{XLSX.writeFile(wb,fname,{bookType:'xlsm',bookVBA:true});if(mode==='sales')_salesDone=true;else _genkinDone=true;checkFinalBtn();toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');}
+  setTransferStatus(mode,'保存中…');
+  setExportRunning(true);
+  if(graphToken){
+    toast(nm[mode]+'中… OneDriveに保存しています','');
+    saveToOneDrive().then(ok=>{
+      if(ok){
+        if(mode==='sales')_salesDone=true;else _genkinDone=true;
+        setTransferStatus(mode,'保存完了');
+        toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');
+      }else{
+        setTransferStatus(mode,'保存失敗');
+        toast((mode==='sales'?'売上集計':'現金集計')+'のOneDrive保存に失敗しました。再度転記してください。','err');
+      }
+    }).catch(e=>{
+      setTransferStatus(mode,'保存エラー');
+      toast('保存エラー：'+e.message,'err');
+    }).finally(()=>{
+      setExportRunning(false);
+      checkFinalBtn();
+    });
+  }
+  else{
+    try{
+      XLSX.writeFile(wb,fname,{bookType:'xlsm',bookVBA:true});
+      if(mode==='sales')_salesDone=true;else _genkinDone=true;
+      setTransferStatus(mode,'保存完了');
+      toast(mode==='sales'?'Excel 売上・経費集計に出力しました':'Excel 現金集計に出力しました','ok');
+    }catch(e){
+      setTransferStatus(mode,'保存エラー');
+      toast('保存エラー：'+e.message,'err');
+    }finally{
+      setExportRunning(false);
+      checkFinalBtn();
+    }
+  }
 }
 
 document.addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropOv').classList.add('on');});
@@ -656,8 +725,8 @@ async function initMsal(cid,silent=false){
     graphToken=tokenRes.accessToken;updateLoginUI(res.account);toast('ログイン完了 ✅ OneDriveからデータを読み込みます…','ok');await loadFromOneDrive();
   }catch(e){console.log('ログインエラー:',e.message);}
 }
-function updateLoginUI(account){document.getElementById('loginDot').style.background='#70AD47';document.getElementById('loginStatusText').textContent='✅ '+account.username;document.getElementById('msBtnText').textContent='ログアウト';document.getElementById('msBtn').onclick=doLogout;document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#555;';document.getElementById('xlFileLabel').style.display='none';document.getElementById('fileLabel').textContent='';['bSales','bGenkin'].forEach(id=>document.getElementById(id).disabled=false);document.getElementById('bClear').disabled=true;_salesDone=false;_genkinDone=false;const rb=document.getElementById('bReload');rb.disabled=false;rb.style.display='';}
-function doLogout(){if(msalApp)msalApp.logoutPopup();graphToken=null;document.getElementById('loginDot').style.background='#ffb8c8';document.getElementById('loginStatusText').textContent='未接続';document.getElementById('msBtnText').textContent='Microsoftでログイン';document.getElementById('msBtn').onclick=handleMsLogin;document.getElementById('msBtn').style.cssText='background:rgba(255,255,255,0.93);color:#a05070;';document.getElementById('xlFileLabel').style.display='';document.getElementById('fileLabel').textContent='（ファイル未選択）';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);_salesDone=false;_genkinDone=false;const rb3=document.getElementById('bReload');rb3.disabled=true;rb3.style.display='none';}
+function updateLoginUI(account){document.getElementById('loginDot').style.background='#70AD47';document.getElementById('loginStatusText').textContent='✅ '+account.username;document.getElementById('msBtnText').textContent='ログアウト';document.getElementById('msBtn').onclick=doLogout;document.getElementById('msBtn').style.cssText='background:#f2f2f2;color:#555;';document.getElementById('xlFileLabel').style.display='none';document.getElementById('fileLabel').textContent='';['bSales','bGenkin'].forEach(id=>document.getElementById(id).disabled=false);document.getElementById('bClear').disabled=true;resetProcessStatus();const rb=document.getElementById('bReload');rb.disabled=false;rb.style.display='';}
+function doLogout(){if(msalApp)msalApp.logoutPopup();graphToken=null;document.getElementById('loginDot').style.background='#ffb8c8';document.getElementById('loginStatusText').textContent='未接続';document.getElementById('msBtnText').textContent='Microsoftでログイン';document.getElementById('msBtn').onclick=handleMsLogin;document.getElementById('msBtn').style.cssText='background:rgba(255,255,255,0.93);color:#a05070;';document.getElementById('xlFileLabel').style.display='';document.getElementById('fileLabel').textContent='（ファイル未選択）';['bSales','bGenkin','bClear'].forEach(id=>document.getElementById(id).disabled=true);resetProcessStatus();const rb3=document.getElementById('bReload');rb3.disabled=true;rb3.style.display='none';}
 function reloadData(){
   location.reload();
 }
@@ -665,10 +734,60 @@ function reloadData(){
 async function loadFromOneDrive(){if(!graphToken)return;const path=localStorage.getItem('aria_path');if(!path)return;try{toast('OneDriveからデータを読み込み中…','');const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{headers:{Authorization:'Bearer '+graphToken}});if(!res.ok)throw new Error('読み込みエラー: '+res.status);wb=XLSX.read(await(await res.blob()).arrayBuffer(),{type:'array',cellStyles:true,cellFormulas:true,bookVBA:true});preserveSheets(wb);loadFromXl();toast('Excel Fileを取り込みました','ok');}catch(e){toast('読み込みエラー：'+e.message,'err');}}
 async function saveToOneDrive(){if(!graphToken)return false;const path=localStorage.getItem('aria_path');if(!path)return false;try{const wbout=XLSX.write(wb,{bookType:'xlsm',type:'array',bookVBA:true});const blob=new Blob([wbout],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});const url=`https://graph.microsoft.com/v1.0/me/drive/root:${encodeURIComponent(path)}:/content`;const res=await fetch(url,{method:'PUT',headers:{Authorization:'Bearer '+graphToken,'Content-Type':'application/vnd.ms-excel.sheet.macroEnabled.12'},body:blob});if(!res.ok)throw new Error('書き込みエラー: '+res.status);return true;}catch(e){toast('OneDrive書き込みエラー：'+e.message,'err');return false;}}
 
-let _salesDone=false,_genkinDone=false,_clearRunning=false;
+let _salesDone=false,_genkinDone=false,_clearRunning=false,_exportRunning=false;
+let _salesStatus='未転記',_genkinStatus='未転記';
+
+function _statusClass(status){
+  if(status.includes('完了')) return 'ok';
+  if(status.includes('失敗')||status.includes('エラー')) return 'err';
+  if(status.includes('保存中')||status.includes('処理中')) return 'info';
+  return 'wait';
+}
+
+function updateProcessStatus(){
+  const salesEl=document.getElementById('salesStatusText');
+  const genkinEl=document.getElementById('genkinStatusText');
+  const finalEl=document.getElementById('finalStatusText');
+  if(salesEl){salesEl.textContent=_salesStatus;salesEl.className=_statusClass(_salesStatus);}
+  if(genkinEl){genkinEl.textContent=_genkinStatus;genkinEl.className=_statusClass(_genkinStatus);}
+  if(finalEl){
+    if(_exportRunning){finalEl.textContent='転記保存中です。保存完了まで次の操作を待ってください。';finalEl.className='info';}
+    else if(_salesDone&&_genkinDone){finalEl.textContent='実行できます。';finalEl.className='ok';}
+    else if(_salesDone&&!_genkinDone){finalEl.textContent='現金集計の転記保存がまだ完了していません。';finalEl.className='wait';}
+    else if(!_salesDone&&_genkinDone){finalEl.textContent='売上集計の転記保存がまだ完了していません。';finalEl.className='wait';}
+    else{finalEl.textContent='売上集計・現金集計の両方が完了すると実行できます。';finalEl.className='info';}
+  }
+}
+
+function resetProcessStatus(){
+  _salesDone=false;_genkinDone=false;_exportRunning=false;
+  _salesStatus='未転記';_genkinStatus='未転記';
+  const btn=document.getElementById('bClear');
+  if(btn)btn.disabled=true;
+  updateProcessStatus();
+}
+
+function setExportRunning(running){
+  _exportRunning=running;
+  const salesBtn=document.getElementById('bSales');
+  const genkinBtn=document.getElementById('bGenkin');
+  const clearBtn=document.getElementById('bClear');
+  if(salesBtn)salesBtn.disabled=running;
+  if(genkinBtn)genkinBtn.disabled=running;
+  if(clearBtn)clearBtn.disabled=running||!(_salesDone&&_genkinDone);
+  updateProcessStatus();
+}
+
+function setTransferStatus(mode,status){
+  if(mode==='sales')_salesStatus=status;
+  else _genkinStatus=status;
+  updateProcessStatus();
+}
+
 function checkFinalBtn(){
   const btn=document.getElementById('bClear');
-  if(_salesDone&&_genkinDone){btn.disabled=false;}
+  if(btn)btn.disabled=_exportRunning||!(_salesDone&&_genkinDone);
+  updateProcessStatus();
 }
 // Enterキーで次の入力欄に移動
 const _enterOrder = [
@@ -712,7 +831,7 @@ function _setupEnterKey(){
   });
 }
 
-window.onload=()=>{document.getElementById('B3').value=new Date().toISOString().split('T')[0];loadSettings();calc();if(window.msal&&msalApp){const a=msalApp.getAllAccounts();if(a.length>0)updateLoginUI(a[0]);}setTimeout(()=>{document.getElementById('B3').focus();_setupEnterKey();},500);};
+window.onload=()=>{document.getElementById('B3').value=new Date().toISOString().split('T')[0];updateProcessStatus();loadSettings();calc();if(window.msal&&msalApp){const a=msalApp.getAllAccounts();if(a.length>0)updateLoginUI(a[0]);}setTimeout(()=>{document.getElementById('B3').focus();_setupEnterKey();},500);};
 </script>
 </body>
 </html>
